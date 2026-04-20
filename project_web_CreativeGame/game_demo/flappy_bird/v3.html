@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8'>
+<title>Echo Chain Flap</title>
+<style>
+body{margin:0;background:radial-gradient(circle at top,#0b1024 0%,#050816 45%,#02030a 100%);display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden;}
+canvas{width:800px;height:500px;display:block;background:#08111f;box-shadow:0 0 25px rgba(0,229,255,0.35),0 0 40px rgba(255,77,248,0.18),inset 0 0 40px rgba(0,229,255,0.12);border:1px solid rgba(120,220,255,0.18);}
+</style>
+</head>
+<body>
+<canvas id='gameCanvas'></canvas>
+<script>
+window.onload = function(){
+  var canvas = document.getElementById('gameCanvas');
+  var ctx = canvas.getContext('2d');
+  canvas.width = 800;
+  canvas.height = 500;
+
+  var keys = {};
+  var y = 250;
+  var vy = 0;
+  var gravity = 0.45;
+  var flapPower = -7.5;
+  var pipes = [];
+  var frame = 0;
+  var score = 0;
+  var state = 'menu';
+
+  function flap(){
+    if(state === 'menu' || state === 'game_over'){
+      resetGame();
+      state = 'playing';
+      return;
+    }
+    if(state === 'playing'){
+      vy = flapPower;
+    }
+  }
+
+  function resetGame(){
+    y = 250;
+    vy = 0;
+    pipes = [];
+    frame = 0;
+    score = 0;
+  }
+
+  function spawnPipe(){
+    var gapH = 130;
+    var gapY = 100 + Math.random() * 300;
+    pipes.push({ x: 800, w: 70, gapY: gapY, gapH: gapH, scored: false });
+  }
+
+  window.addEventListener('keydown', function(e){
+    keys[e.code] = true;
+    if(e.code === 'Space'){
+      e.preventDefault();
+      flap();
+    }
+    if(e.code === 'KeyR'){
+      resetGame();
+      state = 'menu';
+    }
+  });
+
+  window.addEventListener('keyup', function(e){
+    keys[e.code] = false;
+  });
+
+  canvas.addEventListener('mousedown', function(){
+    flap();
+  });
+
+  function update(){
+    if(state !== 'playing'){
+      return;
+    }
+
+    frame++;
+    vy += gravity;
+    y += vy;
+
+    if(frame % 100 === 0){
+      spawnPipe();
+    }
+
+    for(var i = pipes.length - 1; i >= 0; i--){
+      var p = pipes[i];
+      p.x -= 2.6;
+
+      if(!p.scored && p.x + p.w < 140){
+        p.scored = true;
+        score++;
+      }
+
+      if(140 + 12 > p.x && 140 - 12 < p.x + p.w){
+        if(y - 12 < p.gapY - p.gapH / 2 || y + 12 > p.gapY + p.gapH / 2){
+          state = 'game_over';
+        }
+      }
+
+      if(p.x + p.w < 0){
+        pipes.splice(i, 1);
+      }
+    }
+
+    if(y < 0 || y > canvas.height){
+      state = 'game_over';
+    }
+  }
+
+  function draw(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    var bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    bg.addColorStop(0, '#091225');
+    bg.addColorStop(1, '#050816');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for(var i = 0; i < pipes.length; i++){
+      var p = pipes[i];
+      ctx.fillStyle = '#14ff74';
+      ctx.fillRect(p.x, 0, p.w, p.gapY - p.gapH / 2);
+      ctx.fillRect(p.x, p.gapY + p.gapH / 2, p.w, canvas.height - (p.gapY + p.gapH / 2));
+    }
+
+    ctx.save();
+    ctx.translate(140, y);
+    ctx.fillStyle = '#59dfff';
+    ctx.beginPath();
+    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '20px sans-serif';
+    ctx.fillText('Score: ' + score, 20, 30);
+
+    if(state === 'menu'){
+      ctx.fillText('Echo Chain Flap', 310, 220);
+      ctx.fillText('Press Space or Click', 290, 255);
+    }
+
+    if(state === 'game_over'){
+      ctx.fillText('Game Over', 340, 220);
+      ctx.fillText('Press Space to Restart', 280, 255);
+    }
+  }
+
+  function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  resetGame();
+  requestAnimationFrame(loop);
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8'>
+<title>Echo Flap</title>
+<style>
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #12233f 0%, #08111f 45%, #040812 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  overflow: hidden;
+}
+canvas {
+  width: 800px;
+  height: 500px;
+  display: block;
+  background: #071523;
+  box-shadow: 0 0 22px rgba(0, 220, 255, 0.18), 0 0 60px rgba(255, 60, 210, 0.08), inset 0 0 40px rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(100, 220, 255, 0.18);
+}
+</style>
+</head>
+<body>
+<canvas id='gameCanvas'></canvas>
+<script>
+window.onload = function(){
+  var canvas = document.getElementById('gameCanvas');
+  var ctx = canvas.getContext('2d');
+  canvas.width = 800;
+  canvas.height = 500;
+
+  var keys = {};
+  var x = 400;
+  var y = 250;
+  var vx = 0;
+  var vy = 0;
+  var speed = 0.5;
+  var friction = 0.92;
+
+  window.addEventListener('keydown', function(e){
+    keys[e.code] = true;
+  });
+
+  window.addEventListener('keyup', function(e){
+    keys[e.code] = false;
+  });
+
+  function update(){
+    if (keys['ArrowLeft'] || keys['KeyA']) vx -= speed;
+    if (keys['ArrowRight'] || keys['KeyD']) vx += speed;
+    if (keys['ArrowUp'] || keys['KeyW']) vy -= speed;
+    if (keys['ArrowDown'] || keys['KeyS']) vy += speed;
+
+    vx *= friction;
+    vy *= friction;
+    x += vx;
+    y += vy;
+
+    if (x < 20) x = 20;
+    if (x > canvas.width - 20) x = canvas.width - 20;
+    if (y < 20) y = 20;
+    if (y > canvas.height - 20) y = canvas.height - 20;
+  }
+
+  function draw(){
+    ctx.fillStyle = '#071523';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = 'rgba(90, 210, 255, 0.08)';
+    ctx.lineWidth = 1;
+    for (var gy = 0; gy < canvas.height; gy += 50) {
+      ctx.beginPath();
+      ctx.moveTo(0, gy);
+      ctx.lineTo(canvas.width, gy);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = 'rgba(255, 80, 220, 0.05)';
+    for (var gx = 0; gx < canvas.width; gx += 80) {
+      ctx.beginPath();
+      ctx.moveTo(gx, 0);
+      ctx.lineTo(gx, canvas.height);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = '#00d8ff';
+    ctx.beginPath();
+    ctx.arc(x, y, 20, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Echo Flap', canvas.width / 2, 40);
+    ctx.fillText('Use arrow keys or WASD', canvas.width / 2, 70);
+  }
+
+  function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  loop();
+};
+</script>
+</body>
+</html>

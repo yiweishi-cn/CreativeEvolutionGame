@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CreativeGame | Web Technical Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="report-shell">
+    <header class="hero">
+      <nav class="topbar">
+        <div class="brand">
+          <div class="brand-mark">CG</div>
+          <div class="brand-copy">
+            <span class="brand-name">CreativeGame</span>
+            <span class="brand-sub">Web Technical Report | mechanic-guided generation</span>
+          </div>
+        </div>
+        <div class="topbar-links">
+          <a href="#abstract">Abstract</a>
+          <a href="#architecture">Architecture</a>
+          <a href="#implementation">Implementation</a>
+          <a href="#results">Results</a>
+          <a href="#demos">Demo Cases</a>
+          <a href="#limitations">Limitations</a>
+        </div>
+      </nav>
+
+      <div class="hero-grid">
+        <section class="hero-copy">
+          <div class="hero-badges">
+            <span class="eyebrow">Technical Report</span>
+            <span class="hero-version">V1</span>
+            <span class="hero-date">April 2026</span>
+          </div>
+          <h1>Creative game generation<br />with mechanics moved into the planning loop.</h1>
+          <p class="hero-text">
+            CreativeGame is an end-to-end multi-agent system for generating and iteratively improving HTML5 games.
+            This version reframes the project around one stronger claim: mechanics should not only be extracted after
+            generation, but should guide the current version before code generation begins through planner retrieval,
+            <code>CurrentMechanicSet</code>, and planned-vs-realized tracing.
+          </p>
+
+          <div class="hero-summary-grid">
+            <article class="hero-note hero-note-primary">
+              <span class="hero-note-label">Core Shift</span>
+              <p>From prompt-led generation with post-hoc mechanic interpretation to mechanic-aware planning with explicit structure passing through evaluation and reflection.</p>
+            </article>
+            <article class="hero-note">
+              <span class="hero-note-label">Research Focus</span>
+              <p>The project now asks whether iterative structure and memory can produce stronger creative evolution, not only whether AI can generate a playable game once.</p>
+            </article>
+          </div>
+
+          <div class="hero-points">
+            <div>
+              <span class="hero-point-kicker">Pipeline</span>
+              <p>Planner -&gt; CurrentMechanicSet -&gt; code generation -&gt; runtime validation -&gt; mechanic-grounded evaluation.</p>
+            </div>
+            <div>
+              <span class="hero-point-kicker">Evidence</span>
+              <p>Lineage traces, reward signals, runtime reports, and frontend-visible mechanic traces instead of isolated output snapshots.</p>
+            </div>
+          </div>
+
+          <div class="hero-actions">
+            <a class="button primary" href="#demos">View Demo Lineages</a>
+            <a class="button secondary" href="#update">System Snapshot</a>
+          </div>
+
+          <div class="hero-metrics">
+            <article>
+              <span class="metric-value">67</span>
+              <span class="metric-label">stored lineages in the current repository snapshot</span>
+            </article>
+            <article>
+              <span class="metric-value">774</span>
+              <span class="metric-label">mechanic archive entries available for retrieval</span>
+            </article>
+            <article>
+              <span class="metric-value">Plan -&gt; Trace</span>
+              <span class="metric-label">mechanic planning is now visible across pipeline stages</span>
+            </article>
+          </div>
+        </section>
+
+        <section class="hero-panel" id="update">
+          <div class="panel-header">
+            <span class="panel-tag">System Snapshot</span>
+            <span class="panel-code">CURRENT_MECHANIC_SET</span>
+          </div>
+          <div class="hero-panel-stack">
+            <article class="update-card hero-spotlight">
+              <span class="update-index">01</span>
+              <h3>What V1 is claiming</h3>
+              <p>The system is no longer framed as only a multi-agent code pipeline. It is framed as a mechanic-aware generation loop with explicit planning objects.</p>
+            </article>
+            <article class="update-card highlight">
+              <span class="update-index">02</span>
+              <h3>What the code already exposes</h3>
+              <p>The planner reads archive retrieval context, emits <code>CurrentMechanicSet</code>, and forwards that structure to evaluation, reflection, API payloads, and frontend trace views.</p>
+            </article>
+            <article class="update-card">
+              <span class="update-index">03</span>
+              <h3>What still remains open</h3>
+              <p>Human pairwise validation, memory ablations, and stronger proof that plan-aware mechanic control consistently improves generated outcomes.</p>
+            </article>
+          </div>
+          <div class="hero-panel-footer">
+            <div class="snapshot-stat">
+              <span class="snapshot-value">83</span>
+              <span class="snapshot-label">saved nodes across all lineages</span>
+            </div>
+            <div class="snapshot-stat">
+              <span class="snapshot-value">HTML5</span>
+              <span class="snapshot-label">current evaluation scope</span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </header>
+
+    <main>
+      <section class="section" id="abstract">
+        <div class="section-head">
+          <span class="section-kicker">Abstract</span>
+          <h2>From one-shot generation to iterative, mechanic-aware creative improvement.</h2>
+        </div>
+        <div class="two-col">
+          <article class="content-card">
+            <p>
+              The original technical report presents CreativeGame as a multi-agent system that decomposes
+              creative game generation into planning, code generation, testing, evaluation, reflection,
+              and memory writing. The system uses a programmatic creativity proxy reward instead of relying
+              primarily on subjective LLM judgment, and stores experience in a lineage-aware memory structure.
+            </p>
+            <p>
+              Based on subsequent project documents and code evolution, the current system is being reframed
+              around a stronger principle: mechanics should not only explain a generated game after the fact,
+              but should act as explicit design objects for the current version before code generation begins.
+            </p>
+          </article>
+          <article class="content-card accent">
+            <h3>Latest interpretation of the project</h3>
+            <ul class="bullet-list">
+              <li>The pipeline now aims to connect <code>IntentSpec -> mechanic retrieval -> CurrentMechanicSet -> GameSpec -> code -> mechanic-grounded evaluation</code>.</li>
+              <li>The key research question is no longer only "can AI generate games?" but "can AI learn to generate more creative games through structured iteration?"</li>
+              <li>The strongest evidence should come from visible lineage evolution, not isolated single outputs.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="section-kicker">Core Contributions</span>
+          <h2>What the report claims, and what the newer code is adding.</h2>
+        </div>
+        <div class="contribution-grid">
+          <article class="mini-card">
+            <span class="step-number">01</span>
+            <h3>CreativeProxyReward</h3>
+            <p>A mostly programmatic creativity signal with weighted structural, novelty, playability, and regression components.</p>
+          </article>
+          <article class="mini-card">
+            <span class="step-number">02</span>
+            <h3>Lineage-aware memory</h3>
+            <p>Shared memory within a lineage, supporting iterative accumulation while preserving cross-lineage separation.</p>
+          </article>
+          <article class="mini-card">
+            <span class="step-number">03</span>
+            <h3>Runtime validation</h3>
+            <p>Static and optional browser validation to prevent broken games from being rewarded as creative successes.</p>
+          </article>
+          <article class="mini-card highlight">
+            <span class="step-number">04</span>
+            <h3>Mechanic-guided redesign</h3>
+            <p>Recent work adds explicit planner retrieval and <code>CurrentMechanicSet</code> as the missing control layer between intent and generation.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="section-kicker">Report to Code</span>
+          <h2>What the latest implementation already makes visible.</h2>
+        </div>
+        <div class="report-code-grid">
+          <article class="module-card highlight">
+            <h3>Pipeline storage</h3>
+            <p><code>pipeline.py</code> stores both <code>current_mechanic_set</code> and <code>mechanic_library_context</code> per iteration, so planning decisions are no longer lost after generation.</p>
+          </article>
+          <article class="module-card">
+            <h3>Server API exposure</h3>
+            <p><code>server/app.py</code> exposes planner output, evaluator output, reflector output, runtime report, mechanic trace, and reward breakdown through the web API.</p>
+          </article>
+          <article class="module-card">
+            <h3>Frontend trace view</h3>
+            <p>The gallery modal includes a dedicated mechanic trace that can show planner retrieval context, current mechanic set, evaluated mechanics, and reward-related mechanic signals.</p>
+          </article>
+          <article class="module-card">
+            <h3>Interpretation</h3>
+            <p>The system is no longer mechanic-blind during analysis, but the strongest remaining task is to make mechanic planning even more decisive during current-version generation.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="architecture">
+        <div class="section-head">
+          <span class="section-kicker">Architecture</span>
+          <h2>How the pipeline should now be understood.</h2>
+        </div>
+        <div class="architecture-stack">
+          <div class="stack-card">
+            <span class="stack-label">Report v1.1 pipeline</span>
+            <p>User Prompt -> Planner -> CodeGenerator -> Tester -> Evaluator -> Reflector -> Output, with lineage-aware memory and reward-guided iteration.</p>
+          </div>
+          <div class="stack-arrow">↓</div>
+          <div class="stack-card highlight">
+            <span class="stack-label">Current project refinement</span>
+            <p>IntentSpec -> Mechanic Retrieval -> CurrentMechanicSet -> GameSpec -> Code Generation -> Mechanic-grounded Evaluation -> Memory / Archive Feedback.</p>
+          </div>
+          <div class="stack-arrow">↓</div>
+          <div class="stack-card">
+            <span class="stack-label">Implementation status</span>
+            <p>The planner now reads mechanic-library context, emits <code>CurrentMechanicSet</code>, and the frontend can visualize a mechanic trace for generated games.</p>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <article class="content-card">
+            <h3>Why the new layer matters</h3>
+            <ul class="bullet-list">
+              <li>It distinguishes preserved mechanics from newly added mechanics.</li>
+              <li>It turns reward into planned structural realization rather than only post-hoc comparison.</li>
+              <li>It lets memory store mechanic deltas rather than only version summaries.</li>
+            </ul>
+          </article>
+          <article class="content-card">
+            <h3>What was missing before</h3>
+            <ul class="bullet-list">
+              <li>Mechanic library was mostly retrieval support and novelty baseline.</li>
+              <li>Game versions were still generated primarily from prompt interpretation.</li>
+              <li>Evaluator could compare versions, but not strongly compare plan vs implementation.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="section-kicker">Execution Loop</span>
+          <h2>The current mechanic-aware loop in operational form.</h2>
+        </div>
+        <div class="execution-flow">
+          <div class="flow-step">
+            <span class="flow-index">01</span>
+            <h3>Intent framing</h3>
+            <p>The system receives a prompt or an evolve-from-existing-game instruction and frames a target player experience.</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <span class="flow-index">02</span>
+            <h3>Mechanic retrieval</h3>
+            <p>The planner retrieves relevant, overused, underexplored, or discouraged mechanic patterns from archive and memory context.</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step highlight">
+            <span class="flow-index">03</span>
+            <h3>CurrentMechanicSet</h3>
+            <p>The current version declares what should be preserved, added, removed, or recombined before code is generated.</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <span class="flow-index">04</span>
+            <h3>Generation + validation</h3>
+            <p>Skeleton, feature, visual, refinement, structural checking, and runtime validation build the playable artifact.</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <span class="flow-index">05</span>
+            <h3>Mechanic-grounded evaluation</h3>
+            <p>The system compares planned mechanics, realized mechanics, deltas, and reward signals, then writes structured feedback into lineage memory.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="section-kicker">System Modules</span>
+          <h2>Current technical structure in the codebase.</h2>
+        </div>
+        <div class="module-grid">
+          <article class="module-card">
+            <h3>Planner</h3>
+            <p>Retrieves mechanic context, proposes an intent-aligned design, and outputs <code>CurrentMechanicSet</code>.</p>
+          </article>
+          <article class="module-card">
+            <h3>Code Generator</h3>
+            <p>Implements the planned version through staged generation: skeleton, feature, visual, and later refinement.</p>
+          </article>
+          <article class="module-card">
+            <h3>Tester + Evaluator</h3>
+            <p>Checks runtime plausibility, extracts realized mechanics, and scores the generated artifact.</p>
+          </article>
+          <article class="module-card">
+            <h3>Reflector + Memory</h3>
+            <p>Decides whether to continue, stores experiences in lineage memory, and can write back to the global archive.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="section-kicker">Reward and Memory</span>
+          <h2>What remains from the original report, and what is being strengthened.</h2>
+        </div>
+        <div class="three-col">
+          <article class="content-card">
+            <h3>Reward</h3>
+            <p>The original report defines a weighted reward centered on structural mechanic change, novelty, LLM creativity, runtime playability, cosmetic penalties, and regression penalties.</p>
+            <p>The updated interpretation reframes reward toward a new question: <strong>did this version realize the intended mechanic change?</strong></p>
+          </article>
+          <article class="content-card">
+            <h3>Lineage Memory</h3>
+            <p>Memory remains lineage-scoped, which is still the right design for preserving game identity across versions and forks.</p>
+            <p>The newer design adds a stronger requirement that memory should store mechanic-level deltas and preservation decisions explicitly.</p>
+          </article>
+          <article class="content-card accent">
+            <h3>Mechanic Archive</h3>
+            <p>The archive is no longer only a background novelty baseline. It is becoming an active design source for planner retrieval and generation guidance.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="implementation">
+        <div class="section-head">
+          <span class="section-kicker">Implementation Status</span>
+          <h2>What is grounded in code, what is in-progress, and what is still research debt.</h2>
+        </div>
+        <div class="status-matrix">
+          <article class="status-column done">
+            <div class="status-column-head">
+              <span class="status-pill">Implemented</span>
+              <h3>Already in the current code</h3>
+            </div>
+            <ul class="bullet-list">
+              <li>Planner reads mechanic-library context (738 LLM-extracted entries).</li>
+              <li><code>CurrentMechanicSet</code> is parsed from Planner output and stored per iteration.</li>
+              <li><code>CurrentMechanicSet</code> forwarded to Evaluator and Reflector for planned-vs-realized comparison.</li>
+              <li>API returns mechanic trace and reward breakdown.</li>
+              <li>Gallery trace view visualizes mechanic-related planning and evaluation.</li>
+              <li>LLM extraction pipeline built: 738 structured archive entries with <code>delta_A/T/O/F/K/W</code>.</li>
+            </ul>
+          </article>
+          <article class="status-column progress">
+            <div class="status-column-head">
+              <span class="status-pill">In Progress</span>
+              <h3>Actively being strengthened</h3>
+            </div>
+            <ul class="bullet-list">
+              <li>Wiring LLM extraction into live generation pipeline (replacing regex for mechanic_delta).</li>
+              <li>Planned-vs-realized mechanic comparison via <code>realization_score</code> in Evaluator.</li>
+              <li>Two-path memory write-back: lineage-local MemRecord + cross-lineage archive update.</li>
+              <li>Stronger demo framing around base game plus iterative checkpoints.</li>
+            </ul>
+          </article>
+          <article class="status-column future">
+            <div class="status-column-head">
+              <span class="status-pill">Open</span>
+              <h3>Still missing for research-grade claims</h3>
+            </div>
+            <ul class="bullet-list">
+              <li>Human pairwise evaluation of creativity improvement.</li>
+              <li>MemRL ablation and reward ablation studies.</li>
+              <li>Cleaner mechanic extraction beyond bounded regex coverage.</li>
+              <li>Proof that mechanic planning consistently drives better generation outcomes.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="results">
+        <div class="section-head">
+          <span class="section-kicker">Results Snapshot</span>
+          <h2>Key numbers from the report and their interpretation.</h2>
+        </div>
+        <div class="stats-grid">
+          <article class="stat-card">
+            <span class="stat-value">57</span>
+            <span class="stat-label">reported generated lineages</span>
+          </article>
+          <article class="stat-card">
+            <span class="stat-value">4</span>
+            <span class="stat-label">multi-node lineages in v1.1</span>
+          </article>
+          <article class="stat-card">
+            <span class="stat-value">~1.94M</span>
+            <span class="stat-label">reported lifetime tokens</span>
+          </article>
+          <article class="stat-card">
+            <span class="stat-value">91.7%</span>
+            <span class="stat-label">Python code reduction vs ChatDev prototype</span>
+          </article>
+        </div>
+        <div class="two-col">
+          <article class="content-card">
+            <h3>What these numbers show</h3>
+            <p>The system is already a working full-stack prototype with backend, frontend, memory, reward, and game generation capabilities.</p>
+          </article>
+          <article class="content-card">
+            <h3>What they do not yet prove</h3>
+            <p>The project still lacks controlled human evaluation and memory ablations, so these numbers show implementation maturity more than scientific validation.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="demos">
+        <div class="section-head with-inline-note">
+          <div>
+            <span class="section-kicker">Demo Cases</span>
+            <h2>Representative lineages for the homepage and report.</h2>
+          </div>
+          <p class="inline-note">
+            Each row is one case lineage. Each column is one checkpoint:
+            Base, Iteration 2, Iteration 4, and Iteration 8.
+          </p>
+        </div>
+
+        <p class="inline-note" style="margin-bottom:1rem;">
+          Four base games were selected to cover non-overlapping mechanic families from the project archive:
+          <strong>Flappy Bird</strong> (M019+M020, single-input arcade, cold-start baseline),
+          <strong>Plants vs. Zombies</strong> (M029+M030+M031, tower defense economy, preserve+add),
+          <strong>Happy Glass</strong> (M014 family, constructive physics puzzle, goal-shift), and
+          <strong>Fireboy and Watergirl</strong> (M041+M020, dual-character co-op, recombination).
+          Scores and mechanic labels reflect the system's output format. Playable generated games are available at the
+          <a href="http://creativegame.onaliyun.com/" target="_blank">live demo</a>.
+        </p>
+
+        <div class="demo-toolbar">
+          <button class="filter-chip active" data-filter="all">All</button>
+          <button class="filter-chip" data-filter="preserve-add">Preserve + Add</button>
+          <button class="filter-chip" data-filter="recombine">Recombine</button>
+          <button class="filter-chip" data-filter="goal-shift">Goal Shift</button>
+          <button class="filter-chip" data-filter="cold-start">Cold Start</button>
+        </div>
+
+        <div class="demo-board" id="demo-board"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="section-kicker">Homepage Framing</span>
+          <h2>Why this layout works for a project homepage as well as a report.</h2>
+        </div>
+        <div class="two-col">
+          <article class="content-card">
+            <h3>For researchers and reviewers</h3>
+            <p>The page communicates the system claim, the pipeline change, the current implementation state, and the exact limits of the evidence without forcing readers into raw markdown first.</p>
+          </article>
+          <article class="content-card accent">
+            <h3>For visitors and demo viewers</h3>
+            <p>The row-by-row lineage table turns abstract improvement into something legible: a base game, then checkpoints at iteration 2, 4, and 8, with mechanics and reward trends visible at a glance.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="limitations">
+        <div class="section-head">
+          <span class="section-kicker">Limitations</span>
+          <h2>Important caveats from the report and later discussion.</h2>
+        </div>
+        <div class="limit-grid">
+          <article class="mini-card">
+            <h3>No human pairwise study yet</h3>
+            <p>The report is explicit that there is still no human validation showing that later versions are systematically judged as more creative.</p>
+          </article>
+          <article class="mini-card">
+            <h3>No MemRL ablation yet</h3>
+            <p>The memory design is implemented, but its actual contribution has not yet been isolated experimentally.</p>
+          </article>
+          <article class="mini-card">
+            <h3>Mechanic extraction: partially resolved</h3>
+            <p>Archive building now uses LLM-based extraction (738 structured entries). The live generation pipeline still uses regex. Integration of LLM extraction into the generation loop is the next concrete task.</p>
+          </article>
+          <article class="mini-card highlight">
+            <h3>The key gap has shifted</h3>
+            <p>The most important current challenge is no longer "can the system generate games?" but "can mechanics truly drive current-version generation?"</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="section-kicker">Next Step</span>
+          <h2>Most important execution direction right now.</h2>
+        </div>
+        <div class="next-step-card">
+          <p>
+            Based on the latest design documents, the clearest next milestone is not another broad conceptual rewrite,
+            but a stable mechanic-guided MVP: freeze the schema around <code>CurrentMechanicSet</code>, ensure the planner
+            emits it consistently, connect it to generation and evaluation, and validate the loop on one clear game family
+            such as tower defense.
+          </p>
+          <div class="next-step-tags">
+            <span class="token">freeze schema</span>
+            <span class="token">planner retrieval</span>
+            <span class="token">CurrentMechanicSet</span>
+            <span class="token">planned vs realized</span>
+            <span class="token">tower defense MVP</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./script.js"></script>
+</body>
+</html>

@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8'>
+<title>Echo Front</title>
+<style>
+body { margin: 0; background: #05060a; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+canvas { width: 800px; height: 500px; display: block; background: #0a0f18; box-shadow: 0 0 20px #00f0ff44; }
+</style>
+</head>
+<body>
+<canvas id='game'></canvas>
+<script>
+window.onload = function(){
+  var canvas = document.getElementById('game');
+  var ctx = canvas.getContext('2d');
+  canvas.width = 800;
+  canvas.height = 500;
+
+  var state, score, player, keys, mouse, selectedLane;
+  var energy, baseHealth, wave, waveTimer, spawnTimer, waveEnemiesToSpawn, waveSpawned, waveActive;
+  var bullets, enemies, towers, particles, floatTexts;
+  var towerTypes, laneCooldowns, pulseCooldown, lastSpaceDown;
+
+  function resetGame() {
+    state = 'menu';
+    score = 0;
+    selectedLane = 1;
+    keys = {};
+    mouse = { x: 0, y: 0, down: false };
+    player = { x: 120, y: 250, w: 24, h: 24, speed: 4, lane: 1, color: '#00f0ff' };
+    energy = 120;
+    baseHealth = 20;
+    wave = 0;
+    waveTimer = 120;
+    spawnTimer = 0;
+    waveEnemiesToSpawn = 0;
+    waveSpawned = 0;
+    waveActive = false;
+    bullets = [];
+    enemies = [];
+    towers = [];
+    particles = [];
+    floatTexts = [];
+    laneCooldowns = [0, 0, 0];
+    pulseCooldown = 0;
+    lastSpaceDown = false;
+    towerTypes = [
+      { key: 'pulse', name: 'Pulse', cost: 30, color: '#00f0ff', fireRate: 40, range: 280, damage: 1, bulletSpeed: 7, size: 18 },
+      { key: 'beam', name: 'Beam', cost: 45, color: '#ff2bd6', fireRate: 70, range: 320, damage: 2, bulletSpeed: 8, size: 20 },
+      { key: 'ion', name: 'Ion', cost: 65, color: '#ffd166', fireRate: 22, range: 240, damage: 0.6, bulletSpeed: 6, size: 16 }
+    ];
+  }
+
+  resetGame();
+
+  function laneY(lane) {
+    return 125 + lane * 125;
+  }
+
+  function addFloatText(x, y, text, color) {
+    floatTexts.push({ x: x, y: y, text: text, color: color, life: 45 });
+  }
+
+  function addParticles(x, y, color, amount) {
+    for (var i = 0; i < amount; i++) {
+      particles.push({
+        x: x,
+        y: y,
+        vx: (Math.random() - 0.5) * 3,
+        vy: (Math.random() - 0.5) * 3,
+        life: 20 + Math.random() * 20,
+        color: color,
+        size: 2 + Math.random() * 2
+      });
+    }
+  }
+
+  function startRun() {
+    state = 'playing';
+    score = 0;
+    energy = 120;
+    baseHealth = 20;
+    wave = 0;
+    waveTimer = 30;
+    spawnTimer = 0;
+    waveEnemiesToSpawn = 0;
+    waveSpawned = 0;
+    waveActive = false;
+    bullets = [];
+    enemies = [];
+    towers = [];
+    particles = [];
+    floatTexts = [];
+    laneCooldowns = [0, 0, 0];
+    pulseCooldown = 0;
+    player.x = 120;
+    player.lane = selectedLane;
+    player.y = laneY(player.lane) - player.h / 2;
+    placeInitialTower(0, 0);
+    placeInitialTower(1, 1);
+    placeInitialTower(2, 2);
+  }
+
+  function placeInitialTower(lane, slot) {
+    towers.push({
+      lane: lane,
+      slot: slot,
+      x: 250 + slot * 140,
+      y: laneY(lane),
+      type: 0,
+      cooldown: 10 + lane * 8,
+      hp: 999
+    });
+  }
+
+  function nextWave() {
+    wave += 1;
+    waveActive = true;
+    waveSpawned = 0;
+    waveEnemiesToSpawn = 6 + wave * 3;
+    spawnTimer = 20;
+    addFloatText(360, 70, 'Wave ' + wave, '#9dfcff');
+  }
+
+  function spawnEnemy() {
+    var lane = Math.floor(Math.random() * 3);
+    if (Math.random() < 0.25) {
+      lane = Math.floor(Math.random() * 3);
+    }
+    var kind = 'runner';
+    if (wave >= 2 && Math.random() < 0.3) kind = 'tank';
+    if (wave >= 3 && Math.random() < 0.25) kind = 'spark';
+    var enemy = {
+      lane: lane,
+      x: 820,
+      y: laneY(lane),
+      w: 24,
+      h: 24,
+      speed: 0.8 + wave * 0.08,
+      hp: 4 + wave * 0.8,
+      maxHp: 4 + wave * 0.8,
+      damage: 1,
+      color: '#ff5f6d',
+      kind: kind,
+      hitFlash: 0
+    };
+    if (kind === 'tank') {
+      enemy.w = 34;
+      enemy.h = 34;
+      enemy.speed = 0.45 + wave * 0.04;
+      enemy.hp = 10 + wave * 1.8;
+      enemy.maxHp = enemy.hp;
+      enemy.damage = 2;
+      enemy.color = '#ff9f1c';
+    }
+    if (kind === 'spark') {
+      enemy.w = 20;
+      enemy.h = 20;
+      enemy.speed = 1.4 + wave * 0.09;
+      enemy.hp = 3 + wave * 0.6;
+      enemy.maxHp = enemy.hp;
+      enemy.damage = 1;
+      enemy.color = '#c77dff';
+    }
+    enemies.push(enemy);
+  }
+
+  function placeTower(typeIndex, lane, slot) {
+    if (lane < 0 || lane > 2) return false;
+    if (slot < 0 || slot > 2) return false;
+    for (var i = 0; i < towers.length; i++) {
+      if (towers[i].lane === lane && towers[i].slot === slot) {
+        addFloatText(250 + slot * 140, laneY(lane) - 30, 'Blocked', '#ff8080');
+        return false;
+      }
+    }
+    var type = towerTypes[typeIndex];
+    if (!type) return false;
+    if (energy < type.cost) {
+      addFloatText(player.x, player.y - 10, 'Need ' + type.cost, '#ff8080');
+      return false;
+    }
+    energy -= type.cost;
+    towers.push({
+      lane: lane,
+      slot: slot,
+      x: 250 + slot * 140,
+      y: laneY(lane),
+      type: typeIndex,
+      cooldown: 0,
+      hp: 999
+    });
+    addParticles(250 + slot * 140, laneY(lane), type.color, 12);
+    addFloatText(250 + slot * 140, laneY(lane) - 20, type.name, type.color);
+    return true;
+  }
+
+  function tryPlaceAtPlayer(typeIndex) {
+    var slot = Math.round((player.x - 250) / 140);
+    slot = Math.max(0, Math.min(2, slot));
+    return placeTower(typeIndex, selectedLane, slot);
+  }
+
+  window.addEventListener('keydown', function(e){
+    keys[e.key.toLowerCase()] = true;
+    if (e.key === '1') selectedLane = 0;
+    if (e.key === '2') selectedLane = 1;
+    if (e.key === '3') selectedLane = 2;
+    if (e.key.toLowerCase() === 'r') resetGame();
+    if (state === 'menu' && e.key === ' ') startRun();
+    if (state === 'game_over' && e.key === ' ') startRun();
+    if (state === 'playing') {
+      if (e.key.toLowerCase() === 'q') tryPlaceAtPlayer(0);
+      if (e.key.toLowerCase() === 'e') tryPlaceAtPlayer(1);
+      if (e.key.toLowerCase() === 'f') tryPlaceAtPlayer(2);
+    }
+  });
+
+  window.addEventListener('keyup', function(e){
+    keys[e.key.toLowerCase()] = false;
+  });
+
+  canvas.addEventListener('mousemove', function(e){
+    var rect = canvas.getBoundingClientRect();
+    mouse.x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    mouse.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+  });
+
+  canvas.addEventListener('mousedown', function(e){
+    mouse.down = true;
+    if (state === 'menu') {
+      startRun();
+      e.preventDefault();
+      return;
+    }
+    if (state === 'game_over') {
+      startRun();
+      e.preventDefault();
+      return;
+    }
+    if (state === 'playing') {
+      selectedLane = Math.max(0, Math.min(2, Math.floor(mouse.y / 166.7)));
+      player.lane = selectedLane;
+      player.y = laneY(player.lane) - player.h / 2;
+      var slot = Math.round((mouse.x - 250) / 140);
+      if (mouse.x > 180 && mouse.x < 700 && slot >= 0 && slot <= 2) {
+        placeTower(0, selectedLane, slot);
+      } else {
+        score += 1;
+      }
+    }
+    e.preventDefault();
+  });
+
+  canvas.addEventListener('mouseup', function(){
+    mouse.down = false;
+  });
+
+  canvas.addEventListener('contextmenu', function(e){
+    e.preventDefault();
+    if (state === 'playing') {
+      pulseCooldown = 0;
+      score += 5;
+    }
+  });
+
+  function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+    return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+  }
+
+  function fireTower(tower, target) {
+    var type = towerTypes[tower.type];
+    bullets.push({
+      x: tower.x + 18,
+      y: tower.y,
+      vx: type.bulletSpeed,
+      lane: tower.lane,
+      damage: type.damage,
+      color: type.color,
+      size: type.size / 5 + 3,
+      life: 120,
+      pierce: type.key === 'ion' ? 2 : 1,
+      targetKind: type.key
+    });
+    tower.cooldown = type.fireRate;
+    addParticles(tower.x + 12, tower.y, type.color, 3);
+  }
+
+  function updatePlayerControls() {
+    if (keys['a'] || keys['arrowleft']) player.x -= player.speed;
+    if (keys['d'] || keys['arrowright']) player.x += player.speed;
+    if (keys['w'] || keys['arrowup']) selectedLane = Math.max(0, selectedLane - 1);
+    if (keys['s'] || keys['arrowdown']) selectedLane = Math.min(2, selectedLane + 1);
+    var spaceDown = !!keys[' '];
+    if (spaceDown && !lastSpaceDown && pulseCooldown <= 0) {
+      pulseCooldown = 45;
+      for (var i = enemies.length - 1; i >= 0; i--) {
+        var enemy = enemies[i];
+        if (enemy.lane === selectedLane && enemy.x < player.x + 180 && enemy.x > player.x - 20) {
+          enemy.x += 28;
+          enemy.hp -= 1.2;
+          enemy.hitFlash = 6;
+          addParticles(enemy.x, enemy.y, '#00f0ff', 8);
+          if (enemy.hp <= 0) {
+            score += 10;
+            energy += 6;
+            addFloatText(enemy.x, enemy.y - 18, '+10', '#9dfcff');
+            enemies.splice(i, 1);
+          }
+        }
+      }
+    }
+    lastSpaceDown = spaceDown;
+    player.lane = selectedLane;
+    player.y += (laneY(player.lane) - player.h / 2 - player.y) * 0.2;
+    player.x = Math.max(40, Math.min(canvas.width - 40, player.x));
+    if (pulseCooldown > 0) pulseCooldown--;
+  }
+
+  function updateWave() {
+    if (!waveActive) {
+      waveTimer--;
+      if (waveTimer <= 0) nextWave();
+      return;
+    }
+    spawnTimer--;
+    if (spawnTimer <= 0 && waveSpawned < waveEnemiesToSpawn) {
+      spawnEnemy();
+      waveSpawned++;
+      spawnTimer = Math.max(18, 46 - wave * 2);
+    }
+    if (waveSpawned >= waveEnemiesToSpawn && enemies.length === 0) {
+      waveActive = false;
+      waveTimer = 150;
+      energy += 20 + wave * 3;
+      score += 25;
+      addFloatText(340, 92, 'Wave Clear', '#7cffcb');
+    }
+  }
+
+  function updateTowers() {
+    for (var i = 0; i < towers.length; i++) {
+      var tower = towers[i];
+      if (tower.cooldown > 0) tower.cooldown--;
+      var type = towerTypes[tower.type];
+      var target = null;
+      var bestX = -9999;
+      for (var j = 0; j < enemies.length; j++) {
+        var enemy = enemies[j];
+        if (enemy.lane === tower.lane && enemy.x > tower.x && enemy.x - tower.x <= type.range) {
+          if (enemy.x > bestX) {
+            bestX = enemy.x;
+            target = enemy;
+          }
+        }
+      }
+      if (target && tower.cooldown <= 0) {
+        fireTower(tower, target);
+      }
+    }
+  }
+
+  function updateBullets() {
+    for (var i = bullets.length - 1; i >= 0; i--) {
+      var bullet = bullets[i];
+      bullet.x += bullet.vx;
+      bullet.life--;
+      var removed = false;
+      for (var j = enemies.length - 1; j >= 0; j--) {
+        var enemy = enemies[j];
+        if (enemy.lane !== bullet.lane) continue;
+        if (rectsOverlap(bullet.x - bullet.size, bullet.y - bullet.size, bullet.size * 2, bullet.size * 2, enemy.x - enemy.w / 2, enemy.y - enemy.h / 2, enemy.w, enemy.h)) {
+          enemy.hp -= bullet.damage;
+          enemy.hitFlash = 4;
+          addParticles(bullet.x, bullet.y, bullet.color, 4);
+          bullet.pierce--;
+          if (enemy.hp <= 0) {
+            score += enemy.kind === 'tank' ? 18 : enemy.kind === 'spark' ? 12 : 10;
+            energy += enemy.kind === 'tank' ? 10 : 6;
+            addFloatText(enemy.x, enemy.y - 16, '+' + (enemy.kind === 'tank' ? 18 : enemy.kind === 'spark' ? 12 : 10), '#9dfcff');
+            addParticles(enemy.x, enemy.y, enemy.color, 12);
+            enemies.splice(j, 1);
+          }
+          if (bullet.pierce <= 0) {
+            bullets.splice(i, 1);
+            removed = true;
+          }
+          break;
+        }
+      }
+      if (!removed && (bullet.life <= 0 || bullet.x > 830)) {
+        bullets.splice(i, 1);
+      }
+    }
+  }
+
+  function updateEnemies() {
+    for (var i = enemies.length - 1; i >= 0; i--) {
+      var enemy = enemies[i];
+      enemy.x -= enemy.speed;
+      if (enemy.hitFlash > 0) enemy.hitFlash--;
+      if (enemy.x < 90) {
+        baseHealth -= enemy.damage;
+        addFloatText(70, laneY(enemy.lane) - 20, '-' + enemy.damage, '#ff8080');
+        addParticles(80, laneY(enemy.lane), '#ff2b6e', 10);
+        enemies.splice(i, 1);
+        if (baseHealth <= 0) {
+          state = 'game_over';
+        }
+      }
+    }
+  }
+
+  function updateEffects() {
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life--;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+    for (var j = floatTexts.length - 1; j >= 0; j--) {
+      var f = floatTexts[j];
+      f.y -= 0.5;
+      f.life--;
+      if (f.life <= 0) floatTexts.splice(j, 1);
+    }
+  }
+
+  function update() {
+    if (state !== 'playing') return;
+    updatePlayerControls();
+    updateWave();
+    updateTowers();
+    updateBullets();
+    updateEnemies();
+    updateEffects();
+    score += 0.01;
+    energy = Math.min(999, energy + 0.01);
+  }
+
+  function drawLanes() {
+    for (var i = 0; i < 3; i++) {
+      var y = 83 + i * 166;
+      ctx.strokeStyle = i === selectedLane ? '#ff2bd6' : '#163040';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(40, y, 720, 84);
+      ctx.strokeStyle = '#0f1f2c';
+      for (var x = 50; x < 750; x += 24) {
+        ctx.beginPath();
+        ctx.moveTo(x, y + 42);
+        ctx.lineTo(x + 12, y + 42);
+        ctx.stroke();
+      }
+      for (var s = 0; s < 3; s++) {
+        var tx = 250 + s * 140;
+        ctx.strokeStyle = '#1f3d52';
+        ctx.strokeRect(tx - 24, laneY(i) - 24, 48, 48);
+      }
+    }
+  }
+
+  function drawBase() {
+    ctx.fillStyle = '#102635';
+    ctx.fillRect(40, 70, 50, 360);
+    ctx.fillStyle = '#00f0ff';
+    ctx.fillRect(56, 90, 18, 320);
+    ctx.fillStyle = '#08131b';
+    ctx.fillRect(15, 440, 140, 16);
+    ctx.fillStyle = '#ff2b6e';
+    ctx.fillRect(15, 440, 140 * Math.max(0, baseHealth) / 20, 16);
+    ctx.strokeStyle = '#ffffff';
+    ctx.strokeRect(15, 440, 140, 16);
+  }
+
+  function drawTowers() {
+    for (var i = 0; i < towers.length; i++) {
+      var tower = towers[i];
+      var type = towerTypes[tower.type];
+      ctx.fillStyle = '#0d1722';
+      ctx.fillRect(tower.x - 18, tower.y - 18, 36, 36);
+      ctx.strokeStyle = type.color;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(tower.x - 18, tower.y - 18, 36, 36);
+      ctx.fillStyle = type.color;
+      ctx.beginPath();
+      ctx.arc(tower.x, tower.y, 8 + tower.type * 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(tower.x, tower.y - 3, 18, 6);
+    }
+  }
+
+  function drawEnemies() {
+    for (var i = 0; i < enemies.length; i++) {
+      var enemy = enemies[i];
+      ctx.fillStyle = enemy.hitFlash > 0 ? '#ffffff' : enemy.color;
+      ctx.fillRect(enemy.x - enemy.w / 2, enemy.y - enemy.h / 2, enemy.w, enemy.h);
+      ctx.fillStyle = '#111';
+      ctx.fillRect(enemy.x - enemy.w / 2, enemy.y - enemy.h / 2 - 10, enemy.w, 4);
+      ctx.fillStyle = '#7cffcb';
+      ctx.fillRect(enemy.x - enemy.w / 2, enemy.y - enemy.h / 2 - 10, enemy.w * Math.max(0, enemy.hp) / enemy.maxHp, 4);
+    }
+  }
+
+  function drawBullets() {
+    for (var i = 0; i < bullets.length; i++) {
+      var bullet = bullets[i];
+      ctx.fillStyle = bullet.color;
+      ctx.shadowColor = bullet.color;
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(bullet.x, bullet.y, bullet.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  function drawEffects() {
+    for (var i = 0; i < particles.length; i++) {
+      var p = particles[i];
+      ctx.globalAlpha = Math.max(0, p.life / 40);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
+    for (var j = 0; j < floatTexts.length; j++) {
+      var f = floatTexts[j];
+      ctx.globalAlpha = Math.max(0, f.life / 45);
+      ctx.fillStyle = f.color;
+      ctx.font = '14px monospace';
+      ctx.fillText(f.text, f.x, f.y);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawHud() {
+    ctx.fillStyle = '#9dfcff';
+    ctx.font = '18px monospace';
+    ctx.fillText('Score: ' + Math.floor(score), 20, 28);
+    ctx.fillText('Lane: ' + (selectedLane + 1), 20, 52);
+    ctx.fillText('Energy: ' + Math.floor(energy), 180, 28);
+    ctx.fillText('Base: ' + Math.max(0, baseHealth), 180, 52);
+    ctx.fillText('Wave: ' + wave + (waveActive ? '' : ' ready'), 330, 28);
+    ctx.fillText('Q Pulse 30  E Beam 45  F Ion 65', 330, 52);
+  }
+
+  function render() {
+    ctx.fillStyle = '#05060a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    drawLanes();
+    drawBase();
+    drawTowers();
+    drawEnemies();
+    drawBullets();
+
+    ctx.fillStyle = player.color;
+    ctx.shadowColor = player.color;
+    ctx.shadowBlur = 12;
+    ctx.fillRect(player.x - player.w / 2, player.y, player.w, player.h);
+    ctx.shadowBlur = 0;
+
+    if (state === 'playing' && pulseCooldown > 30) {
+      ctx.strokeStyle = '#00f0ff';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(player.x - 10, laneY(selectedLane) - 28, 180, 56);
+    }
+
+    drawEffects();
+    drawHud();
+
+    if (state === 'menu') {
+      ctx.fillStyle = '#00f0ff';
+      ctx.font = '32px monospace';
+      ctx.fillText('ECHO FRONT', 285, 150);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '18px monospace';
+      ctx.fillText('Defend the left core across three lanes.', 230, 195);
+      ctx.fillText('Click or Space to start', 295, 225);
+      ctx.fillText('Mouse: choose lane and place Pulse towers on slots', 165, 265);
+      ctx.fillText('1 2 3 or W S: lane  |  A D: move cursor  |  Space / Right click: shock pulse', 95, 295);
+      ctx.fillText('Q/E/F: build Pulse, Beam, Ion tower at your current lane slot', 135, 325);
+      ctx.fillText('Press R to reset all state', 260, 355);
+    }
+
+    if (state === 'game_over') {
+      ctx.fillStyle = '#ff2b6e';
+      ctx.font = '34px monospace';
+      ctx.fillText('GAME OVER', 295, 190);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '18px monospace';
+      ctx.fillText('Final Score: ' + Math.floor(score), 320, 225);
+      ctx.fillText('Waves Survived: ' + wave, 320, 250);
+      ctx.fillText('Click or press Space to play again', 240, 285);
+      ctx.fillText('Press R to full reset', 295, 315);
+    }
+  }
+
+  function loop() {
+    update();
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  loop();
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8'>
+<title>Neon Pulse Flier</title>
+<style>
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at top, #18233f 0%, #090d18 55%, #04060d 100%);
+  overflow: hidden;
+}
+canvas {
+  width: 800px;
+  height: 500px;
+  display: block;
+  box-shadow: 0 0 0 2px rgba(107, 241, 255, 0.18), 0 0 30px rgba(55, 140, 255, 0.22), 0 18px 60px rgba(0, 0, 0, 0.6);
+}
+</style>
+</head>
+<body>
+<canvas id='gameCanvas'></canvas>
+<script>
+window.onload = function(){
+  var canvas = document.getElementById('gameCanvas');
+  var ctx = canvas.getContext('2d');
+  canvas.width = 800;
+  canvas.height = 500;
+
+  var keys = {};
+
+  function drawPlaceholder(){
+    ctx.fillStyle = '#0b1020';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#d6fbff';
+    ctx.font = 'bold 36px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Neon Pulse Flier', 400, 220);
+    ctx.font = '20px Arial';
+    ctx.fillText('Structural fix applied', 400, 255);
+    ctx.fillText('Press Space or Arrow Keys', 400, 285);
+    ctx.textAlign = 'left';
+  }
+
+  window.addEventListener('keydown', function(e){
+    keys[e.key] = true;
+  });
+
+  window.addEventListener('keyup', function(e){
+    keys[e.key] = false;
+  });
+
+  function gameLoop(){
+    drawPlaceholder();
+    requestAnimationFrame(gameLoop);
+  }
+
+  gameLoop();
+};
+</script>
+</body>
+</html>

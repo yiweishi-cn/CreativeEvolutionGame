@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8'>
+<title>Echo Chain Flap</title>
+<style>
+body { margin: 0; background: #050b16; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
+canvas { width: 800px; height: 500px; display: block; background: #03070f; box-shadow: 0 0 30px #0ff3, 0 0 80px #58f1 inset; }
+</style>
+</head>
+<body>
+<canvas id='gameCanvas'></canvas>
+<script>
+window.onload = function(){
+  var canvas = document.getElementById('gameCanvas');
+  var ctx = canvas.getContext('2d');
+  canvas.width = 800; canvas.height = 500;
+
+  var keys = {};
+  var x = 390;
+  var y = 240;
+  var vx = 0;
+  var vy = 0;
+
+  window.addEventListener('keydown', function(e){
+    keys[e.key.toLowerCase()] = true;
+  });
+
+  window.addEventListener('keyup', function(e){
+    keys[e.key.toLowerCase()] = false;
+  });
+
+  function update(){
+    if(keys['arrowleft'] || keys['a']) vx = -3;
+    else if(keys['arrowright'] || keys['d']) vx = 3;
+    else vx = 0;
+
+    if(keys['arrowup'] || keys['w']) vy = -3;
+    else if(keys['arrowdown'] || keys['s']) vy = 3;
+    else vy = 0;
+
+    x += vx;
+    y += vy;
+
+    if(x < 0) x = 0;
+    if(y < 0) y = 0;
+    if(x > canvas.width - 20) x = canvas.width - 20;
+    if(y > canvas.height - 20) y = canvas.height - 20;
+  }
+
+  function draw(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#03070f';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#7df';
+    ctx.fillRect(x, y, 20, 20);
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px sans-serif';
+    ctx.fillText('Echo Chain Flap', 20, 30);
+    ctx.fillText('Use arrow keys or WASD', 20, 55);
+  }
+
+  function gameLoop(){
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+
+  gameLoop();
+};
+</script>
+</body>
+</html>
