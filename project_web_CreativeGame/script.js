@@ -20,7 +20,7 @@ const demoCases = [
         playUrl: "./game_demo/flappy_bird/v1.html"
       },
       {
-        title: "Iteration 2",
+        title: "Round 2",
         chip: "checkpoint",
         delta: "gap-width variation added",
         note:
@@ -31,7 +31,7 @@ const demoCases = [
         playUrl: "./game_demo/flappy_bird/v2.html"
       },
       {
-        title: "Iteration 4",
+        title: "Round 3",
         chip: "checkpoint",
         delta: "gravity reversal transforms input model",
         note:
@@ -42,8 +42,8 @@ const demoCases = [
         playUrl: "./game_demo/flappy_bird/v3.html"
       },
       {
-        title: "Iteration 8",
-        chip: "late",
+        title: "Round 4",
+        chip: "final",
         delta: "gravity-rhythm loop integrated",
         note:
           "Obstacles are now beat-synced and gravity state is coupled to rhythm cues. The iteration reads as a new mechanic identity rather than a reskinned Flappy Bird, illustrating how cold-start lineages can converge toward coherent creative hooks with enough structured iteration.",
@@ -75,7 +75,7 @@ const demoCases = [
         playUrl: "./game_demo/plants_vs_zombies/v1.html"
       },
       {
-        title: "Iteration 2",
+        title: "Round 2",
         chip: "checkpoint",
         delta: "environmental lane type constrains placement",
         note:
@@ -86,7 +86,7 @@ const demoCases = [
         playUrl: "./game_demo/plants_vs_zombies/v2.html"
       },
       {
-        title: "Iteration 4",
+        title: "Round 3",
         chip: "checkpoint",
         delta: "cross-lane synergy becomes structural",
         note:
@@ -97,8 +97,8 @@ const demoCases = [
         playUrl: "./game_demo/plants_vs_zombies/v3.html"
       },
       {
-        title: "Iteration 8",
-        chip: "late",
+        title: "Round 4",
+        chip: "final",
         delta: "day-night economy and cross-lane depth integrated",
         note:
           "A day-night cycle alters the sun generation rate and zombie composition simultaneously, requiring the player to plan resource timing across two interacting loops. The version demonstrates the project goal: the three preserved mechanics now interact through the added layer rather than operating in parallel.",
@@ -130,7 +130,7 @@ const demoCases = [
         playUrl: "./game_demo/happy_glass/v1.html"
       },
       {
-        title: "Iteration 2",
+        title: "Round 2",
         chip: "checkpoint",
         delta: "routing branches across multiple targets",
         note:
@@ -141,7 +141,7 @@ const demoCases = [
         playUrl: "./game_demo/happy_glass/v2.html"
       },
       {
-        title: "Iteration 4",
+        title: "Round 3",
         chip: "checkpoint",
         delta: "goal shifts from fill to fill-exactly",
         note:
@@ -152,8 +152,8 @@ const demoCases = [
         playUrl: "./game_demo/happy_glass/v3.html"
       },
       {
-        title: "Iteration 8",
-        chip: "late",
+        title: "Round 4",
+        chip: "final",
         delta: "solution order determines physical outcome",
         note:
           "Pressure gates require specific fill sequences: water in glass A unlocks a valve that redirects to glass B under pressure. The challenge is now a multi-step planning problem where drawing order, volume, and routing interact. This exemplifies the project distinction between cosmetic change and genuine challenge reconfiguration.",
@@ -185,7 +185,7 @@ const demoCases = [
         playUrl: "./game_demo/fireboy_and_watergirl/v1.html"
       },
       {
-        title: "Iteration 2",
+        title: "Round 2",
         chip: "checkpoint",
         delta: "action transfer introduced",
         note:
@@ -196,7 +196,7 @@ const demoCases = [
         playUrl: "./game_demo/fireboy_and_watergirl/v2.html"
       },
       {
-        title: "Iteration 4",
+        title: "Round 3",
         chip: "checkpoint",
         delta: "temporal offset makes coordination the core challenge",
         note:
@@ -207,8 +207,8 @@ const demoCases = [
         playUrl: "./game_demo/fireboy_and_watergirl/v3.html"
       },
       {
-        title: "Iteration 8",
-        chip: "late",
+        title: "Round 4",
+        chip: "final",
         delta: "shared physics state fully recombines both characters",
         note:
           "Character element state now propagates into shared world physics: Fireboy heating a platform affects its buoyancy for Watergirl. The two independent traversal systems have become one coupled system. The lineage result is a game whose identity could not have been reached by feature addition alone.",
@@ -247,7 +247,7 @@ function buildDemoCell(stage, variant) {
     <article class="demo-cell">
       <div class="demo-stage">
         <h4>${stage.title}</h4>
-        <span class="stage-chip">${stage.chip}</span>
+        <span class="stage-chip" data-chip="${stage.chip}">${stage.chip}</span>
       </div>
       <div class="demo-visual ${variant}">
         ${preview}

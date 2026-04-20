@@ -23,10 +23,12 @@
         <div class="topbar-links">
           <a href="#abstract">Abstract</a>
           <a href="#architecture">Architecture</a>
+          <a href="#execution">Execution Loop</a>
           <a href="#implementation">Implementation</a>
           <a href="#results">Results</a>
           <a href="#demos">Demo Cases</a>
           <a href="#limitations">Limitations</a>
+          <a href="#future">Future Work</a>
         </div>
       </nav>
 
@@ -75,7 +77,7 @@
 
           <div class="hero-metrics">
             <article>
-              <span class="metric-value">67</span>
+              <span class="metric-value">71</span>
               <span class="metric-label">stored lineages in the current repository snapshot</span>
             </article>
             <article>
@@ -113,7 +115,7 @@
           </div>
           <div class="hero-panel-footer">
             <div class="snapshot-stat">
-              <span class="snapshot-value">83</span>
+              <span class="snapshot-value">88</span>
               <span class="snapshot-label">saved nodes across all lineages</span>
             </div>
             <div class="snapshot-stat">
@@ -252,7 +254,7 @@
         </div>
       </section>
 
-      <section class="section">
+      <section class="section" id="execution">
         <div class="section-head">
           <span class="section-kicker">Execution Loop</span>
           <h2>The current mechanic-aware loop in operational form.</h2>
@@ -350,7 +352,7 @@
               <h3>Already in the current code</h3>
             </div>
             <ul class="bullet-list">
-              <li>Planner reads mechanic-library context (738 LLM-extracted entries).</li>
+              <li>Planner reads mechanic-library context (774 LLM-extracted entries).</li>
               <li><code>CurrentMechanicSet</code> is parsed from Planner output and stored per iteration.</li>
               <li><code>CurrentMechanicSet</code> forwarded to Evaluator and Reflector for planned-vs-realized comparison.</li>
               <li>API returns mechanic trace and reward breakdown.</li>
@@ -392,16 +394,16 @@
         </div>
         <div class="stats-grid">
           <article class="stat-card">
-            <span class="stat-value">57</span>
-            <span class="stat-label">reported generated lineages</span>
+            <span class="stat-value">67</span>
+            <span class="stat-label">stored lineages in current codebase snapshot</span>
           </article>
           <article class="stat-card">
-            <span class="stat-value">4</span>
-            <span class="stat-label">multi-node lineages in v1.1</span>
+            <span class="stat-value">9</span>
+            <span class="stat-label">multi-node lineages (up to depth 4)</span>
           </article>
           <article class="stat-card">
-            <span class="stat-value">~1.94M</span>
-            <span class="stat-label">reported lifetime tokens</span>
+            <span class="stat-value">~4.6M</span>
+            <span class="stat-label">total tokens across all saved nodes</span>
           </article>
           <article class="stat-card">
             <span class="stat-value">91.7%</span>
@@ -427,8 +429,8 @@
             <h2>Representative lineages for the homepage and report.</h2>
           </div>
           <p class="inline-note">
-            Each row is one case lineage. Each column is one checkpoint:
-            Base, Iteration 2, Iteration 4, and Iteration 8.
+            Each row is one case lineage. Each column is one generation round:
+            Base, Round 2, Round 3, and Round 4.
           </p>
         </div>
 
@@ -450,23 +452,6 @@
         </div>
 
         <div class="demo-board" id="demo-board"></div>
-      </section>
-
-      <section class="section">
-        <div class="section-head">
-          <span class="section-kicker">Homepage Framing</span>
-          <h2>Why this layout works for a project homepage as well as a report.</h2>
-        </div>
-        <div class="two-col">
-          <article class="content-card">
-            <h3>For researchers and reviewers</h3>
-            <p>The page communicates the system claim, the pipeline change, the current implementation state, and the exact limits of the evidence without forcing readers into raw markdown first.</p>
-          </article>
-          <article class="content-card accent">
-            <h3>For visitors and demo viewers</h3>
-            <p>The row-by-row lineage table turns abstract improvement into something legible: a base game, then checkpoints at iteration 2, 4, and 8, with mechanics and reward trends visible at a glance.</p>
-          </article>
-        </div>
       </section>
 
       <section class="section" id="limitations">
@@ -494,24 +479,25 @@
         </div>
       </section>
 
-      <section class="section">
+      <section class="section" id="future">
         <div class="section-head">
-          <span class="section-kicker">Next Step</span>
-          <h2>Most important execution direction right now.</h2>
+          <span class="section-kicker">Future Work</span>
+          <h2>Planned directions for strengthening the system.</h2>
         </div>
         <div class="next-step-card">
           <p>
-            Based on the latest design documents, the clearest next milestone is not another broad conceptual rewrite,
-            but a stable mechanic-guided MVP: freeze the schema around <code>CurrentMechanicSet</code>, ensure the planner
-            emits it consistently, connect it to generation and evaluation, and validate the loop on one clear game family
-            such as tower defense.
+            The clearest next milestone is a stable mechanic-guided MVP: consolidate the schema around
+            <code>CurrentMechanicSet</code>, ensure the planner emits it consistently across all generation
+            paths, connect planned mechanics to evaluation via <code>realization_score</code>, and conduct
+            human pairwise evaluation to validate that mechanic-aware planning produces measurably more
+            creative outcomes.
           </p>
           <div class="next-step-tags">
-            <span class="token">freeze schema</span>
-            <span class="token">planner retrieval</span>
+            <span class="token">human pairwise evaluation</span>
+            <span class="token">realization_score</span>
             <span class="token">CurrentMechanicSet</span>
-            <span class="token">planned vs realized</span>
-            <span class="token">tower defense MVP</span>
+            <span class="token">memory ablation</span>
+            <span class="token">LLM mechanic extraction</span>
           </div>
         </div>
       </section>

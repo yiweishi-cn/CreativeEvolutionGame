@@ -299,6 +299,7 @@ body{
 .demo-stage{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .demo-stage h4{margin:0;font-size:.92rem}
 .stage-chip{font-family:var(--mono);font-size:.72rem;color:var(--gold)}
+.stage-chip[data-chip="final"]{color:var(--mint)}
 .demo-visual{
   height:160px;border-radius:18px;position:relative;overflow:hidden;
   background:#08111f;
