@@ -2,109 +2,242 @@
 <html>
 <head>
 <meta charset='UTF-8'>
-<title>Echo Flap</title>
+<title>Echo Breather Neon</title>
 <style>
-body {
-  margin: 0;
-  background: radial-gradient(circle at top, #12233f 0%, #08111f 45%, #040812 100%);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  overflow: hidden;
-}
-canvas {
-  width: 800px;
-  height: 500px;
-  display: block;
-  background: #071523;
-  box-shadow: 0 0 22px rgba(0, 220, 255, 0.18), 0 0 60px rgba(255, 60, 210, 0.08), inset 0 0 40px rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(100, 220, 255, 0.18);
-}
+body{margin:0;background:radial-gradient(circle at top,#0b1430 0%,#050816 55%,#03040a 100%);display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:Arial,sans-serif;overflow:hidden;}
+canvas{width:800px;height:500px;display:block;box-shadow:0 0 24px rgba(0,255,255,0.18),0 0 60px rgba(255,0,170,0.08),inset 0 0 20px rgba(255,255,255,0.04);border:1px solid rgba(120,220,255,0.18);background:#08111f;}
 </style>
 </head>
 <body>
 <canvas id='gameCanvas'></canvas>
 <script>
 window.onload = function(){
-  var canvas = document.getElementById('gameCanvas');
-  var ctx = canvas.getContext('2d');
-  canvas.width = 800;
-  canvas.height = 500;
+var canvas = document.getElementById('gameCanvas');
+var ctx = canvas.getContext('2d');
+canvas.width = 800; canvas.height = 500;
 
-  var keys = {};
-  var x = 400;
-  var y = 250;
-  var vx = 0;
-  var vy = 0;
-  var speed = 0.5;
-  var friction = 0.92;
+var state, score, bestScore, chain, cleanPasses, speed, progress;
+var player, pipes, beacons, particles, ripples, keys, mouse, spawnTimer, nextPipeId, frameCount;
+var pulseCooldown, chargeHoldFrames, tutorialBlink;
+var screenShake, flashAlpha, ambientLines;
 
-  window.addEventListener('keydown', function(e){
-    keys[e.code] = true;
-  });
+function resetGame(){
+  state = 'menu';
+  score = 0;
+  bestScore = bestScore || 0;
+  chain = 0;
+  cleanPasses = 0;
+  speed = 2.5;
+  progress = 0;
+  spawnTimer = 0;
+  nextPipeId = 0;
+  frameCount = 0;
+  pulseCooldown = 0;
+  chargeHoldFrames = 0;
+  tutorialBlink = 0;
+  screenShake = 0;
+  flashAlpha = 0;
+  player = {
+    x:160,
+    y:250,
+    vy:0,
+    vx:0,
+    r:12,
+    rot:0,
+    alive:true,
+    trail:[]
+  };
+  pipes = [];
+  beacons = [];
+  particles = [];
+  ripples = [];
+  keys = {};
+  mouse = {down:false,start:0,x:0,y:0,armed:false};
+  ambientLines = [];
+  for(var i = 0; i < 12; i++){
+    ambientLines.push({x:Math.random() * canvas.width,y:40 + Math.random() * 380,len:70 + Math.random() * 120,speed:0.4 + Math.random() * 0.9,alpha:0.05 + Math.random() * 0.06});
+  }
+}
 
-  window.addEventListener('keyup', function(e){
-    keys[e.code] = false;
-  });
+function startPlay(){
+  state = 'playing';
+  score = 0;
+  chain = 0;
+  cleanPasses = 0;
+  speed = 2.5;
+  progress = 0;
+  spawnTimer = 40;
+  nextPipeId = 0;
+  frameCount = 0;
+  pulseCooldown = 0;
+  chargeHoldFrames = 0;
+  screenShake = 0;
+  flashAlpha = 0;
+  pipes = [];
+  beacons = [];
+  particles = [];
+  ripples = [];
+  player.x = 160;
+  player.y = 250;
+  player.vy = 0;
+  player.vx = 0;
+  player.rot = 0;
+  player.alive = true;
+  player.trail = [];
+}
 
-  function update(){
-    if (keys['ArrowLeft'] || keys['KeyA']) vx -= speed;
-    if (keys['ArrowRight'] || keys['KeyD']) vx += speed;
-    if (keys['ArrowUp'] || keys['KeyW']) vy -= speed;
-    if (keys['ArrowDown'] || keys['KeyS']) vy += speed;
+function flap(){
+  if(state !== 'playing') return;
+  player.vy = -6.6;
+}
 
-    vx *= friction;
-    vy *= friction;
-    x += vx;
-    y += vy;
+function placeBeacon(){
+  if(state !== 'playing') return;
+  if(pulseCooldown > 0) return;
+  pulseCooldown = 18;
+}
 
-    if (x < 20) x = 20;
-    if (x > canvas.width - 20) x = canvas.width - 20;
-    if (y < 20) y = 20;
-    if (y > canvas.height - 20) y = canvas.height - 20;
+function press(){
+  if(state === 'menu'){
+    startPlay();
+    return;
+  }
+  if(state === 'game_over'){
+    startPlay();
+    return;
+  }
+  if(state === 'playing'){
+    mouse.down = true;
+    mouse.start = Date.now();
+    mouse.armed = false;
+    chargeHoldFrames = 0;
+    flap();
+  }
+}
+
+function release(){
+  if(state === 'playing' && mouse.down){
+    if(Date.now() - mouse.start > 180){
+      placeBeacon();
+    }
+  }
+  mouse.down = false;
+  mouse.armed = false;
+  chargeHoldFrames = 0;
+}
+
+function update(){
+  frameCount++;
+  tutorialBlink++;
+  if(screenShake > 0) screenShake *= 0.84;
+  if(flashAlpha > 0) flashAlpha *= 0.9;
+
+  for(var a = 0; a < ambientLines.length; a++){
+    ambientLines[a].x -= ambientLines[a].speed + speed * 0.15;
+    if(ambientLines[a].x + ambientLines[a].len < 0){
+      ambientLines[a].x = canvas.width + Math.random() * 120;
+      ambientLines[a].y = 40 + Math.random() * 380;
+    }
   }
 
-  function draw(){
-    ctx.fillStyle = '#071523';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if(state !== 'playing') return;
 
-    ctx.strokeStyle = 'rgba(90, 210, 255, 0.08)';
+  if(mouse.down){
+    chargeHoldFrames++;
+    if(chargeHoldFrames > 10) mouse.armed = true;
+  }
+  if(pulseCooldown > 0) pulseCooldown--;
+
+  player.vy += 0.36;
+  player.vy *= 0.995;
+  player.y += player.vy;
+
+  if(player.y + player.r > canvas.height - 20 || player.y - player.r < 0){
+    state = 'game_over';
+    bestScore = Math.max(bestScore, score);
+  }
+}
+
+function render(){
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#08111f';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  for(var a = 0; a < ambientLines.length; a++){
+    var line = ambientLines[a];
+    ctx.strokeStyle = 'rgba(120,220,255,' + line.alpha + ')';
     ctx.lineWidth = 1;
-    for (var gy = 0; gy < canvas.height; gy += 50) {
-      ctx.beginPath();
-      ctx.moveTo(0, gy);
-      ctx.lineTo(canvas.width, gy);
-      ctx.stroke();
-    }
-
-    ctx.strokeStyle = 'rgba(255, 80, 220, 0.05)';
-    for (var gx = 0; gx < canvas.width; gx += 80) {
-      ctx.beginPath();
-      ctx.moveTo(gx, 0);
-      ctx.lineTo(gx, canvas.height);
-      ctx.stroke();
-    }
-
-    ctx.fillStyle = '#00d8ff';
     ctx.beginPath();
-    ctx.arc(x, y, 20, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '20px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('Echo Flap', canvas.width / 2, 40);
-    ctx.fillText('Use arrow keys or WASD', canvas.width / 2, 70);
+    ctx.moveTo(line.x, line.y);
+    ctx.lineTo(line.x + line.len, line.y);
+    ctx.stroke();
   }
 
-  function loop(){
-    update();
-    draw();
-    requestAnimationFrame(loop);
+  ctx.fillStyle = '#111622';
+  ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+
+  ctx.save();
+  ctx.translate(player.x, player.y);
+  ctx.fillStyle = '#7df9ff';
+  ctx.beginPath();
+  ctx.arc(0, 0, player.r, 0, 6.283);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle = '#74f7ff';
+  ctx.font = '20px Arial';
+  ctx.fillText('Score: ' + score, 20, 30);
+  ctx.fillText('Best: ' + bestScore, 20, 55);
+
+  if(state === 'menu'){
+    ctx.fillStyle = '#c8f6ff';
+    ctx.font = '28px Arial';
+    ctx.fillText('Echo Breather Neon', 260, 220);
+    ctx.font = '18px Arial';
+    ctx.fillText('Press Space or click to start', 275, 260);
   }
 
-  loop();
+  if(state === 'game_over'){
+    ctx.fillStyle = '#ff7aa8';
+    ctx.font = '28px Arial';
+    ctx.fillText('Game Over', 330, 220);
+    ctx.font = '18px Arial';
+    ctx.fillText('Press Space or click to restart', 270, 260);
+  }
+}
+
+function gameLoop(){
+  update();
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+document.addEventListener('keydown', function(e){
+  keys[e.key] = true;
+  if(e.key === ' ' || e.key === 'ArrowUp'){
+    e.preventDefault();
+    press();
+  }
+});
+
+document.addEventListener('keyup', function(e){
+  keys[e.key] = false;
+  if(e.key === ' ' || e.key === 'ArrowUp'){
+    e.preventDefault();
+    release();
+  }
+});
+
+canvas.addEventListener('mousedown', function(){
+  press();
+});
+
+canvas.addEventListener('mouseup', function(){
+  release();
+});
+
+resetGame();
+gameLoop();
 };
 </script>
 </body>

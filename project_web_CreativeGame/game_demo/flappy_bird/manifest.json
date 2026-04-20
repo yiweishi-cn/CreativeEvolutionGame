@@ -1,0 +1,54 @@
+[
+  {
+    "round": 1,
+    "label": "Sky Pulse Bird",
+    "description": "A neon-polished Flappy-style arcade game with breathing pipe gaps, glowing UI, particle feedback, and impact shake.",
+    "scores": {
+      "creativity": 6,
+      "playability": 9,
+      "engagement": 8,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/flappy_bird/v1.html"
+  },
+  {
+    "round": 2,
+    "label": "Echo Breather",
+    "description": "A neon arcade game with a canvas, keyboard controls, and an animation loop.",
+    "scores": {
+      "creativity": 2,
+      "playability": 5,
+      "engagement": 3,
+      "completeness": 2,
+      "code_quality": 6
+    },
+    "file": "./games/flappy_bird/v2.html"
+  },
+  {
+    "round": 3,
+    "label": "Breath Resonance",
+    "description": "A repaired arcade canvas game shell with keyboard input and an animation loop.",
+    "scores": {
+      "creativity": 1,
+      "playability": 3,
+      "engagement": 1,
+      "completeness": 1,
+      "code_quality": 5
+    },
+    "file": "./games/flappy_bird/v3.html"
+  },
+  {
+    "round": 4,
+    "label": "Game lin_1776647524_000",
+    "description": "",
+    "scores": {
+      "creativity": 7,
+      "playability": 8,
+      "engagement": 8,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/flappy_bird/v4.html"
+  }
+]

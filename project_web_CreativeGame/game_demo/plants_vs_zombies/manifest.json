@@ -1,0 +1,54 @@
+[
+  {
+    "round": 1,
+    "label": "Neon Monkey Guard",
+    "description": "Build neon monkey towers with the mouse to stop waves of bloons from reaching your base.",
+    "scores": {
+      "creativity": 4,
+      "playability": 8,
+      "engagement": 7,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/plants_vs_zombies/v1.html"
+  },
+  {
+    "round": 2,
+    "label": "Fold Stitch Defense",
+    "description": "A neon tower defense where you place towers, launch waves, and draw temporary fold traps while moving a blocker unit.",
+    "scores": {
+      "creativity": 7,
+      "playability": 8,
+      "engagement": 7,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/plants_vs_zombies/v2.html"
+  },
+  {
+    "round": 3,
+    "label": "Neon Seam Guard",
+    "description": "A neon hybrid-control tower defense where you build specialized seam towers and manually repair fabric stress between waves.",
+    "scores": {
+      "creativity": 7,
+      "playability": 8,
+      "engagement": 7,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/plants_vs_zombies/v3.html"
+  },
+  {
+    "round": 4,
+    "label": "Seam Node Defense",
+    "description": "Defend a neon seam by building towers, repairing integrity, and stopping waves from reaching the core.",
+    "scores": {
+      "creativity": 7,
+      "playability": 8,
+      "engagement": 7,
+      "completeness": 8,
+      "code_quality": 8
+    },
+    "file": "./games/plants_vs_zombies/v4.html"
+  }
+]
