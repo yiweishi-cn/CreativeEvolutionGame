@@ -1,0 +1,54 @@
+[
+  {
+    "round": 1,
+    "label": "Fireline Garden",
+    "description": "A PvZ-inspired lane defense where greedy energy plants can physically block your own shots, forcing forecast-based lane architecture.",
+    "scores": {
+      "creativity": 7,
+      "playability": 8,
+      "engagement": 7,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/plants_vs_zombies/v1.html"
+  },
+  {
+    "round": 2,
+    "label": "Neon Bent Lanes",
+    "description": "A lane-defense game where generators create energy but block friendly fire, and once per wave you can pay to bend an entire lane into an arc to rewrite enemy-path and projectile collisions.",
+    "scores": {
+      "creativity": 8,
+      "playability": 8,
+      "engagement": 7,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/plants_vs_zombies/v2.html"
+  },
+  {
+    "round": 3,
+    "label": "Resonance Garden",
+    "description": "A lane-defense circuit garden where allied shots can be intentionally blocked by generators, stored as overcharge, and released during lane bends to solve combo challenge waves.",
+    "scores": {
+      "creativity": 8,
+      "playability": 8,
+      "engagement": 7,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/plants_vs_zombies/v3.html"
+  },
+  {
+    "round": 4,
+    "label": "Resonance Garden",
+    "description": "A lane-defense game where you deliberately let generators intercept allied bullets to store power, then bend a lane once per wave to transform the next discharge into a stronger refracted attack.",
+    "scores": {
+      "creativity": 8,
+      "playability": 8,
+      "engagement": 7,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/plants_vs_zombies/v4.html"
+  }
+]
