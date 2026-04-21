@@ -5,7 +5,7 @@ const demoCases = [
     title: "Case A · Flappy Bird",
     role: "Cold Start Baseline",
     summary:
-      "A single-input arcade lineage starting from the Flappy Bird concept. Rather than reproducing the original tap-to-flap loop, the system introduced rhythm-shaped morphing gates from the first version, then progressively refined the visual feedback and route threading across iterations. All four rounds share the same one-button continuous-forward-motion loop, with creative differentiation coming from obstacle design and feedback density.",
+      "Used as a simple single-input reaction-loop anchor. The lineage keeps the one-button continuous-forward-motion structure associated with Flappy Bird, but treats it as a mechanic reference rather than a cloning target, introducing rhythm-shaped gates, route threading, and denser feedback across iterations.",
     variant: "variant-cold",
     stages: [
       {
@@ -64,7 +64,7 @@ const demoCases = [
     title: "Case B · Plants vs. Zombies",
     role: "Preserve + Add",
     summary:
-      "A tower-defense lineage starting from the PvZ concept. The system generated a lane-defense loop where energy generators physically block friendly fire — a deliberate inversion of the source mechanic. Subsequent rounds added lane-bending (pay to redirect an enemy's entry path once per wave) and overcharge storage (blocked shots accumulate power for burst abilities), progressively deepening the economy without breaking the base loop.",
+      "Used as a resource-aware lane-defense anchor. The lineage keeps the readable lane-defense structure associated with Plants vs. Zombies, but reworks the economy through friendly-fire blockage, lane bending, and overcharge storage rather than reproducing the source game directly.",
     variant: "variant-defense",
     stages: [
       {
@@ -123,7 +123,7 @@ const demoCases = [
     title: "Case C · Happy Glass",
     role: "Goal / Challenge Shift",
     summary:
-      "A drawing-puzzle lineage starting from the Happy Glass concept. The system introduced programmable ink types from the first round rather than reproducing a simple draw-to-fill loop. Solid ink routes droplets; absorb ink stores and redirects them with a delayed gravity flip. Later rounds added a ritual activation target and history-sensitive droplet logic, progressively shifting the challenge from spatial drawing to temporal sequencing.",
+      "Used as a draw-to-shape physics-puzzle anchor. The lineage retains the legible drawing interaction associated with Happy Glass, but moves quickly toward programmable ink, delayed gravity manipulation, and ritual sequencing, shifting the challenge from simple routing to temporal control.",
     variant: "variant-puzzle",
     stages: [
       {
@@ -182,7 +182,7 @@ const demoCases = [
     title: "Case D · Fireboy and Watergirl",
     role: "Mechanic Recombination",
     summary:
-      "A single-player puzzle lineage starting from the Fireboy and Watergirl concept. Instead of two simultaneous players, the system generated a swap mechanic: the player controls one character at a time, and switching leaves a \"memory echo\" — a replay ghost of the previous character's movement path. Subsequent rounds added a gravity glyph that inverts echo playback direction and a ceiling sensor that the inverted echo must reach, coupling the swap timing and movement path into a single design object.",
+      "Used as a dual-character co-op platforming anchor. Instead of copying Fireboy and Watergirl directly, the lineage abstracts its coordination structure into swap, memory echo, inverted replay, and relay timing, turning co-op logic into a single-player mechanic recombination problem.",
     variant: "variant-stealth",
     stages: [
       {
