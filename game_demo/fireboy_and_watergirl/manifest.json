@@ -1,0 +1,54 @@
+[
+  {
+    "round": 1,
+    "label": "Echo Relay Temple",
+    "description": "A single player swaps between fire and water partners, using fading bridge memory, an inactive aura crystal, and a replay ghost to solve one chained elemental temple.",
+    "scores": {
+      "creativity": 8,
+      "playability": 8,
+      "engagement": 7,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/fireboy_and_watergirl/v1.html"
+  },
+  {
+    "round": 2,
+    "label": "Relay Glyph Temple",
+    "description": "A single-player elemental puzzle room where the inactive body powers a crystal bridge and each swap leaves a ghost replay that briefly opens a second route.",
+    "scores": {
+      "creativity": 8,
+      "playability": 8,
+      "engagement": 7,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/fireboy_and_watergirl/v2.html"
+  },
+  {
+    "round": 3,
+    "label": "Relay Echo Temple",
+    "description": "A dual-avatar temple puzzle where you park one body in an aura, swap to spawn collision-meaningful memory ghosts, and use a gravity-imprinted replay to unlock the final exits.",
+    "scores": {
+      "creativity": 8,
+      "playability": 7,
+      "engagement": 7,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/fireboy_and_watergirl/v3.html"
+  },
+  {
+    "round": 4,
+    "label": "Memory Relay",
+    "description": "A single-room Fireboy-and-Watergirl-inspired platform puzzle where parked bodies, replay ghosts, and gravity-imprinted memories form a readable living circuit.",
+    "scores": {
+      "creativity": 8,
+      "playability": 8,
+      "engagement": 7,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/fireboy_and_watergirl/v4.html"
+  }
+]

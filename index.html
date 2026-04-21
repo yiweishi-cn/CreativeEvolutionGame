@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CreativeGame - Technical Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <nav class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark">CG</div>
+        <span class="brand-name">CreativeGame</span>
+      </div>
+      <div class="topbar-links">
+        <a href="#abstract">Abstract</a>
+        <a href="#pipeline">Pipeline</a>
+        <a href="#implementation">Status</a>
+        <a href="#results">Results</a>
+        <a href="#demos">Demos</a>
+        <a href="#discussion">Discussion</a>
+        <a href="#future">Future Work</a>
+      </div>
+      <a class="topbar-cta" href="#demos">View Demos</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="shell">
+      <div class="hero-eyebrow">
+        <span class="eyebrow-dot"></span>
+        Technical Report · April 2026
+      </div>
+      <h1>CreativeGame: Toward <em>Mechanic-Aware Iterative Creative Game Generation.</em></h1>
+
+      <div class="hero-team">
+        <span class="team-role">CreativeGame Team</span>
+
+        <div class="team-group">
+          <span class="team-section-label">Team Members <span class="team-note">(listed alphabetically)</span></span>
+          <p class="team-line">
+            <span class="team-member">Hongnan Ma</span><span class="team-sep"> · </span>
+            <span class="team-member">Han Wang</span><span class="team-sep"> · </span>
+            <span class="team-member">Shenglin Wang</span><span class="team-sep"> · </span>
+            <span class="team-member">Tieyue Yin</span><span class="team-sep"> · </span>
+            <span class="team-member">Yiwei Shi</span><span class="team-sep"> · </span>
+            <span class="team-member">Yucong Huang</span>
+          </p>
+        </div>
+
+        <div class="team-group">
+          <span class="team-section-label">Team Leaders</span>
+          <p class="team-line">
+            <span class="team-member">Yingtian Zou</span><span class="team-sep"> · </span>
+            <span class="team-member">Muning Wen</span><span class="team-sep"> · </span>
+            <span class="team-member">Mengyue Yang</span>
+          </p>
+        </div>
+
+        <div class="team-group team-institutions">
+          <span class="team-section-label">Institutions</span>
+          <p class="team-line">
+            <span class="inst-item">University of Bristol</span><span class="team-sep"> · </span>
+            <span class="inst-item">Shanghai Jiao Tong University</span><span class="team-sep"> · </span>
+            <span class="inst-item">Shandong University</span><span class="team-sep"> · </span>
+            <span class="inst-item">Nanjing University</span><span class="team-sep"> · </span>
+            <span class="inst-item">Sreal AI</span>
+          </p>
+        </div>
+      </div>
+
+      <p class="hero-sub">
+        CreativeGame is a multi-agent pipeline for iterative HTML5 game generation.
+        A Planner retrieves mechanic context, emits <code>CurrentMechanicSet</code>, and drives
+        Skeleton → Feature → Visual → Refinement generation. Each version is evaluated against its
+        plan, reflected upon, and written into lineage memory for subsequent iterations.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#demos">View Demo Lineages</a>
+        <a class="btn btn-secondary" href="#abstract">Read Report</a>
+        <a class="btn btn-secondary" href="../Tech_report/tex/creativegame_techreport.pdf" target="_blank">Download PDF</a>
+      </div>
+      <div class="hero-metrics">
+        <div>
+          <span class="hero-metric-val">71</span>
+          <span class="hero-metric-label">lineages in repository</span>
+        </div>
+        <div>
+          <span class="hero-metric-val">774</span>
+          <span class="hero-metric-label">mechanic archive entries</span>
+        </div>
+        <div>
+          <span class="hero-metric-val">Plan → Trace</span>
+          <span class="hero-metric-label">mechanic planning visible across all stages</span>
+        </div>
+        <div>
+          <span class="hero-metric-val">88</span>
+          <span class="hero-metric-label">saved nodes across lineages</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main class="shell">
+    <section class="section" id="abstract">
+      <span class="section-label">Abstract</span>
+      <h2>From one-shot generation to mechanic-aware iterative improvement.</h2>
+      <div class="two-col">
+        <div class="card">
+          <h3>What the system does</h3>
+          <p>CreativeGame decomposes generation into planning, code generation, testing, evaluation, reflection, and memory writing. The system is designed to address runtime failure, weak cross-generation memory, saturated LLM creativity scores, and the tendency to treat mechanics only as post-hoc descriptions.</p>
+        </div>
+        <div class="card card-accent">
+          <h3>Abstract</h3>
+          <p>The current pipeline couples mechanic retrieval, <code>CurrentMechanicSet</code>, runtime validation, lineage memory, and proxy-based reward in order to optimize structural game change rather than surface novelty alone.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="pipeline">
+      <span class="section-label">Pipeline</span>
+      <h2>Five stages from intent to evaluated game.</h2>
+      <div class="pipeline-steps">
+        <div class="pipe-step">
+          <span class="pipe-num">01</span>
+          <h4>Planner</h4>
+          <p>Retrieves mechanic-library context and emits <code>CurrentMechanicSet</code> declaring what to preserve, add, remove, or recombine.</p>
+        </div>
+        <div class="pipe-step">
+          <span class="pipe-num">02</span>
+          <h4>Code Generation</h4>
+          <p>Skeleton → Feature → Visual → Refinement. Each sub-stage receives the planned mechanic set.</p>
+        </div>
+        <div class="pipe-step highlight">
+          <span class="pipe-num">03</span>
+          <h4>Tester</h4>
+          <p>Static and optional browser validation. Failed runtime checks block reward.</p>
+        </div>
+        <div class="pipe-step">
+          <span class="pipe-num">04</span>
+          <h4>Evaluator</h4>
+          <p>Scores creativity and functionality (1-10), extracts realized mechanics, and computes reward against <code>CurrentMechanicSet</code>.</p>
+        </div>
+        <div class="pipe-step">
+          <span class="pipe-num">05</span>
+          <h4>Reflector + Memory</h4>
+          <p>Writes mechanic-level deltas to lineage memory and optionally updates the global archive.</p>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <h3>Before this version</h3>
+          <ul class="bullet-list">
+            <li>Mechanic library acted mainly as retrieval support and novelty baseline.</li>
+            <li>Versions were generated primarily from prompt interpretation.</li>
+            <li>Evaluation compared versions, but not plan versus implementation.</li>
+          </ul>
+        </div>
+        <div class="card card-accent">
+          <h3>What <code>CurrentMechanicSet</code> adds</h3>
+          <ul class="bullet-list">
+            <li>Explicit separation between preserved and newly added mechanics.</li>
+            <li>Reward can be interpreted as planned structural realization rather than only post-hoc comparison.</li>
+            <li>Memory can store mechanic-level deltas instead of only version summaries.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="results">
+      <span class="section-label">Results Snapshot</span>
+      <h2>Key numbers from the current codebase.</h2>
+      <div class="stats-row">
+        <div class="stat-item">
+          <span class="stat-val">71</span>
+          <span class="stat-desc">stored lineages</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-val">9</span>
+          <span class="stat-desc">multi-node lineages explored to depth 4</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-val">~4.6M</span>
+          <span class="stat-desc">total tokens across all saved nodes</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-val">91.7%</span>
+          <span class="stat-desc">Python code reduction vs ChatDev prototype</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="implementation">
+      <span class="section-label">Implementation Status</span>
+      <h2>What is in code, in progress, and still open.</h2>
+      <div class="status-cols">
+        <div class="status-col done">
+          <span class="status-tag">Implemented</span>
+          <h3>In the current code</h3>
+          <ul class="bullet-list">
+            <li>Planner reads mechanic-library context from a 774-entry archive.</li>
+            <li><code>CurrentMechanicSet</code> is parsed and stored per iteration.</li>
+            <li>Planner output is forwarded to Evaluator and Reflector for plan-vs-realized comparison.</li>
+            <li>API responses expose mechanic trace and reward breakdown.</li>
+            <li>The web gallery visualizes mechanic planning and evaluation.</li>
+          </ul>
+        </div>
+        <div class="status-col progress">
+          <span class="status-tag">In Progress</span>
+          <h3>Being strengthened</h3>
+          <ul class="bullet-list">
+            <li>LLM extraction is being wired into the live pipeline to replace regex-based mechanic delta tracking.</li>
+            <li>Planned-vs-realized comparison is being formalized through <code>realization_score</code>.</li>
+            <li>Write-back is evolving into a two-path loop: lineage-local memory plus cross-lineage archive update.</li>
+          </ul>
+        </div>
+        <div class="status-col open">
+          <span class="status-tag">Open</span>
+          <h3>Missing for research-grade claims</h3>
+          <ul class="bullet-list">
+            <li>Human pairwise evaluation of creativity improvement.</li>
+            <li>MemRL and reward ablation studies.</li>
+            <li>Controlled evidence that mechanic-guided planning outperforms prompt-only generation.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="demos">
+      <div class="demo-header">
+        <div>
+          <span class="section-label">Demo Cases</span>
+          <h2>Four lineages across four mechanic anchors.</h2>
+        </div>
+        <p class="demo-note">
+          Each tab is one lineage: Base → Round 2 → Round 3 → Round 4.
+          These source games act as representative mechanic anchors rather than direct cloning targets.
+        </p>
+      </div>
+      <div id="demo-board"></div>
+    </section>
+
+    <section class="section" id="limitations">
+      <span class="section-label">Limitations</span>
+      <h2>Current gaps and caveats.</h2>
+      <div class="two-col">
+        <div class="card">
+          <h3>No human evaluation yet</h3>
+          <p>LLM self-evaluation still inflates scores, and no controlled pairwise study has yet been run to validate creative improvement from a human perspective.</p>
+        </div>
+        <div class="card">
+          <h3>No memory ablation yet</h3>
+          <p>Memory is implemented but its contribution has not been isolated. It is still unclear how much improvement comes from memory rather than base model capability.</p>
+        </div>
+        <div class="card card-accent">
+          <h3>Mechanic extraction remains partial</h3>
+          <p>The archive already uses LLM-based extraction, but live generation still relies partly on regex-based <code>mechanic_delta</code>. Full end-to-end integration remains the next concrete engineering task.</p>
+        </div>
+        <div class="card">
+          <h3>The key gap has shifted</h3>
+          <p>The central question is no longer whether the system can generate games, but whether mechanic-aware planning can reliably produce more structurally creative outcomes than prompt-only generation.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="discussion">
+      <span class="section-label">Discussion</span>
+      <h2>Why reward decreases in later iterations.</h2>
+      <p class="section-sub">Round 1 rewards are consistently 1.00. By rounds 3-4, reward drops to 0.55-0.80 in three of four lineages despite stable LLM scores of C=8/F=8. This reflects a structural tension in the reward formula rather than simple quality degradation.</p>
+      <div class="two-col">
+        <div class="card">
+          <h3>structural_change decay</h3>
+          <p><code>structural_change</code> rewards added mechanics and explicit structural delta. In preserve-and-deepen rounds, both naturally approach zero, so the formula cannot distinguish deliberate integration from no change.</p>
+        </div>
+        <div class="card card-accent">
+          <h3>novelty decay</h3>
+          <p><code>relative_mechanic_novelty</code> is measured against the archive. As later versions are written back, the lineage begins to compete with its own prior states, driving novelty downward.</p>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card card-accent">
+          <h3>cosmetic penalty misfire</h3>
+          <p>Visual-deepening rounds can trigger cosmetic-only penalties even when they were planned and mechanically meaningful, which misaligns the reward with the intended creative strategy.</p>
+        </div>
+        <div class="card">
+          <h3>baseline offset</h3>
+          <p>The formula applies <code>composite = raw * 2 - 0.3</code>. A neutral iteration with no penalties still scores negatively, making later refinement rounds structurally harder to score well.</p>
+        </div>
+      </div>
+      <div class="future-card">
+        <p>The current reward is better at measuring per-round novelty than lineage deepening. A later-round game that tightly integrates several prior mechanics can therefore score lower than an earlier-round game that introduces one shallow new mechanic. This suggests two next steps: a cumulative mechanic coupling score and a lineage-relative novelty baseline.</p>
+        <div class="tag-row">
+          <span class="tag">cumulative coupling score</span>
+          <span class="tag">lineage-relative novelty</span>
+          <span class="tag">cosmetic penalty calibration</span>
+          <span class="tag">LLM evaluation inflation</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="future">
+      <span class="section-label">Future Work</span>
+      <h2>Next priorities.</h2>
+      <div class="future-card">
+        <p>Consolidate <code>CurrentMechanicSet</code> schema across generation paths, connect planned mechanics to evaluation via <code>realization_score</code>, integrate LLM-based mechanic extraction into the live pipeline, and run human pairwise evaluation to test whether mechanic-aware planning produces measurably more creative outcomes than prompt-only baselines.</p>
+        <div class="tag-row">
+          <span class="tag">human pairwise evaluation</span>
+          <span class="tag">realization_score</span>
+          <span class="tag">LLM mechanic extraction</span>
+          <span class="tag">memory ablation</span>
+          <span class="tag">reward redesign</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <span class="footer-copy">CreativeGame · University of Bristol · April 2026</span>
+      <div class="footer-links">
+        <a href="#abstract">Report</a>
+        <a href="#demos">Demos</a>
+        <a href="../Tech_report/tex/creativegame_techreport.pdf" target="_blank">PDF</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="./script.js"></script>
+</body>
+</html>

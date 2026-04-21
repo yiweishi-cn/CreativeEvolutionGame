@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8'>
+<title>Crease Choir</title>
+<style>
+body { margin: 0; background: radial-gradient(circle at top, #10182a 0%, #05060a 45%, #020308 100%); display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: Arial, sans-serif; overflow: hidden; }
+canvas { width: 800px; height: 500px; display: block; background: linear-gradient(#070b14, #020305); box-shadow: 0 0 20px #00e5ff22, 0 0 50px #6d3cff22, inset 0 0 40px #ffffff08; border: 1px solid #1a2840; }
+</style>
+</head>
+<body>
+<canvas id='gameCanvas'></canvas>
+<script>
+window.onload = function(){
+  var canvas = document.getElementById('gameCanvas');
+  var ctx = canvas.getContext('2d');
+  canvas.width = 800; canvas.height = 500;
+
+  var state = 'playing';
+  var frame = 0;
+  var score = 0;
+  var best = 0;
+  var routeGoalProgress = 0;
+  var routeGoalTarget = 5;
+  var difficultyTier = 0;
+
+  var player = { x: 120, y: 250, vy: 0, r: 12, tilt: 0, trail: [] };
+  var gravity = 0.34;
+  var flapPower = -5.8;
+  var scrollSpeed = 3.05;
+
+  var gates = [];
+  var particles = [];
+  var badges = [];
+  var authoredLinks = [];
+  var windCreases = [];
+  var ghostEcho = [];
+  var previousRunTrail = [];
+  var beatTimer = 0;
+  var beatLength = 42;
+  var beatIndex = 0;
+  var syncCharge = 0;
+  var syncMax = 4;
+  var phaseReady = false;
+  var phaseActive = false;
+  var phaseTimer = 0;
+  var perfectChain = 0;
+  var deathEchoTimer = 0;
+  var holdCharge = 0;
+  var holdActive = false;
+  var holdThreshold = 10;
+  var pointerDown = false;
+  var queuedTap = false;
+  var restartLatch = false;
+  var echoAssistPulse = 0;
+
+  function rand(a, b){ return a + Math.random() * (b - a); }
+  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+  function lerp(a, b, t){ return a + (b - a) * t; }
+
+  function resetRun(){
+    state = 'playing';
+    frame = 0;
+    score = 0;
+    routeGoalProgress = 0;
+    difficultyTier = 0;
+    player.y = 250;
+    player.vy = 0;
+    player.tilt = 0;
+    player.trail = [];
+    gates = [];
+    particles = [];
+    badges = [];
+    authoredLinks = [];
+    windCreases = [];
+    beatTimer = 0;
+    beatIndex = 0;
+    syncCharge = 0;
+    phaseReady = false;
+    phaseActive = false;
+    phaseTimer = 0;
+    perfectChain = 0;
+    deathEchoTimer = 0;
+    holdCharge = 0;
+    holdActive = false;
+    queuedTap = false;
+    echoAssistPulse = 0;
+    spawnGate(860);
+    spawnGate(1120);
+    spawnGate(1380);
+  }
+
+  function makeGate(x){
+    var center = rand(135, 365);
+    var seamBase = rand(56, 94);
+    var amp = rand(16, 36);
+    var drift = rand(-28, 28);
+    return {
+      x: x,
+      w: 72,
+      centerBase: center,
+      center: center,
+      seamBase: seamBase,
+      seam: seamBase,
+      amp: amp,
+      drift: drift,
+      passed: false,
+      scored: false,
+      perfect: false,
+      morphBias: Math.random() * Math.PI * 2,
+      membraneThickness: rand(18, 26),
+      phaseWindow: false,
+      phaseWindowTimer: 0,
+      echoBoost: false,
+      authored: false,
+      authoredStrength: 0,
+      authoredBy: '',
+      linked: false,
+      routeMark: false,
+      routeCreditGiven: false,
+      seamHighlight: 0,
+      membranePulse: 0,
+      tutorial: false
+    };
+  }
+
+  function spawnGate(x){
+    var g = makeGate(x);
+    if (frame < 240) g.tutorial = true;
+    gates.push(g);
+  }
+
+  function getBeatWindow(){
+    var local = beatTimer / beatLength;
+    return Math.abs(local - 0.5) < 0.18;
+  }
+
+  function addBadge(text, color){
+    badges.push({ text: text, color: color, x: player.x + 20, y: player.y - 20, life: 55 });
+  }
+
+  function burst(x, y, color, count){
+    for (var i = 0; i < count; i++) {
+      particles.push({ x: x, y: y, vx: rand(-2.5, 2.5), vy: rand(-2.5, 2.5), life: rand(22, 40), color: color, size: rand(1, 3) });
+    }
+  }
+
+  function flap(fromRelease){
+    player.vy = flapPower - Math.min(holdCharge * 0.025, 1.4);
+    if (getBeatWindow()) {
+      syncCharge = Math.min(syncMax, syncCharge + 1);
+      addBadge('sync', '#7df9ff');
+      burst(player.x, player.y, '#7df9ff', 8);
+      if (syncCharge >= syncMax) {
+        phaseReady = true;
+        syncCharge = 0;
+        addBadge('phase ready', '#b993ff');
+      }
+    }
+    if (phaseReady && fromRelease) {
+      phaseReady = false;
+      phaseActive = true;
+      phaseTimer = 60;
+      addBadge('phase', '#d8b4ff');
+      burst(player.x, player.y, '#c58cff', 14);
+    }
+  }
+
+  function nearestFutureGates(count){
+    var arr = [];
+    for (var i = 0; i < gates.length; i++) {
+      if (gates[i].x + gates[i].w >= player.x + 40) arr.push(gates[i]);
+    }
+    arr.sort(function(a, b){ return a.x - b.x; });
+    return arr.slice(0, count);
+  }
+
+  function lineIntersectsEcho(x1, y1, x2, y2){
+    if (!ghostEcho || ghostEcho.length < 2) return false;
+    for (var i = 1; i < ghostEcho.length; i++) {
+      var p = ghostEcho[i - 1];
+      var q = ghostEcho[i];
+      var mx = (p.x + q.x) * 0.5;
+      var my = (p.y + q.y) * 0.5;
+      var dx = x2 - x1;
+      var dy = y2 - y1;
+      var len2 = dx * dx + dy * dy;
+      if (len2 <= 0.01) continue;
+      var t = ((mx - x1) * dx + (my - y1) * dy) / len2;
+      t = clamp(t, 0, 1);
+      var px = x1 + dx * t;
+      var py = y1 + dy * t;
+      var dist = Math.hypot(px - mx, py - my);
+      if (dist < 18) return true;
+    }
+    return false;
+  }
+
+  function applyGateRewrite(gate, targetY, strength, source, refracted){
+    gate.centerBase = clamp(lerp(gate.centerBase, targetY, 0.65), 90, 410);
+    gate.seamBase = clamp(gate.seamBase + strength, 54, 150);
+    gate.authored = true;
+    gate.authoredStrength = Math.max(gate.authoredStrength, strength);
+    gate.authoredBy = source;
+    gate.linked = true;
+    gate.routeMark = true;
+    gate.seamHighlight = 1;
+    if (refracted) {
+      gate.phaseWindow = true;
+      gate.phaseWindowTimer = 150;
+      gate.echoBoost = true;
+      gate.seamBase = clamp(gate.seamBase + 18, 60, 168);
+    }
+  }
+
+  function emitWindCrease(){
+    var future = nearestFutureGates(2);
+    if (future.length === 0) return;
+    var releaseY = player.y;
+    var projectedY = clamp(player.y + player.vy * 18, 70, 430);
+    var target = future[0];
+    var x1 = player.x;
+    var y1 = releaseY;
+    var x2 = target.x + target.w * 0.5;
+    var y2 = projectedY;
+    var refracted = lineIntersectsEcho(x1, y1, x2, y2);
+    var strength = 10 + holdCharge * 0.22;
+    applyGateRewrite(target, projectedY, strength, 'crease', refracted);
+    windCreases.push({ x1: x1, y1: y1, x2: x2, y2: y2, life: 120, refracted: refracted, chain: false });
+    authoredLinks.push({ x1: x1, y1: y1, x2: x2, y2: y2, life: 100, color: refracted ? '#ffe082' : '#57e8ff' });
+    addBadge(refracted ? 'refract' : 'crease', refracted ? '#ffe082' : '#57e8ff');
+    burst(x1, y1, refracted ? '#ffe082' : '#57e8ff', 14);
+    if (refracted) {
+      echoAssistPulse = 70;
+      if (future[1]) {
+        applyGateRewrite(future[1], clamp(projectedY + rand(-24, 24), 80, 420), 12, 'refract', true);
+        authoredLinks.push({ x1: x2, y1: y2, x2: future[1].x + future[1].w * 0.5, y2: future[1].centerBase, life: 110, color: '#ffd166' });
+      }
+    }
+  }
+
+  function onPress(){
+    if (state === 'game_over' || state === 'won') return;
+    pointerDown = true;
+    holdActive = true;
+    holdCharge = 0;
+    queuedTap = true;
+  }
+
+  function onRelease(){
+    if (!pointerDown) return;
+    pointerDown = false;
+    if (state !== 'playing') return;
+    if (holdCharge < holdThreshold) {
+      flap(false);
+    } else {
+      flap(true);
+      emitWindCrease();
+    }
+    holdActive = false;
+    holdCharge = 0;
+    queuedTap = false;
+  }
+
+  document.addEventListener('keydown', function(e){
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (!pointerDown) onPress();
+    }
+    if ((state === 'game_over' || state === 'won') && e.code === 'Space' && !restartLatch) {
+      restartLatch = true;
+      resetRun();
+    }
+  });
+
+  document.addEventListener('keyup', function(e){
+    if (e.code === 'Space') {
+      e.preventDefault();
+      onRelease();
+      restartLatch = false;
+    }
+  });
+
+  canvas.addEventListener('mousedown', function(){
+    if (!pointerDown) onPress();
+  });
+  canvas.addEventListener('mouseup', function(){
+    onRelease();
+  });
+  canvas.addEventListener('mouseleave', function(){
+    onRelease();
+  });
+
+  function loseRun(){
+    if (state !== 'playing') return;
+    state = 'game_over';
+    best = Math.max(best, score);
+    previousRunTrail = [];
+    for (var i = 0; i < player.trail.length; i += 2) {
+      previousRunTrail.push({ x: player.trail[i].x, y: player.trail[i].y, life: 999 });
+    }
+    ghostEcho = previousRunTrail.slice(0);
+    burst(player.x, player.y, '#ff6b8a', 24);
+  }
+
+  function updateBeat(){
+    beatTimer++;
+    if (beatTimer >= beatLength) {
+      beatTimer = 0;
+      beatIndex = (beatIndex + 1) % 2;
+    }
+  }
+
+  function updatePlayer(){
+    if (holdActive) holdCharge = Math.min(60, holdCharge + 1);
+    player.vy += gravity;
+    player.y += player.vy;
+    player.tilt = clamp(player.vy * 0.08, -0.5, 1.1);
+    player.trail.push({ x: player.x, y: player.y });
+    if (player.trail.length > 180) player.trail.shift();
+    if (phaseActive) {
+      phaseTimer--;
+      if (phaseTimer <= 0) phaseActive = false;
+    }
+    if (echoAssistPulse > 0) echoAssistPulse--;
+    if (player.y > canvas.height - 6 || player.y < 6) loseRun();
+  }
+
+  function gateCurrentShape(g){
+    var pulse = Math.sin((frame / beatLength) * Math.PI * 2 + g.morphBias);
+    var openFactor = beatIndex === 0 ? 1 : -1;
+    var center = g.centerBase + pulse * g.amp * 0.35 + openFactor * g.drift * 0.2;
+    var seam = g.seamBase + openFactor * 12 + pulse * 10;
+    if (difficultyTier > 0) center += Math.sin(frame * 0.03 + g.morphBias) * 10;
+    if (difficultyTier > 1) seam += Math.sin(frame * 0.05 + g.morphBias * 0.7) * 8;
+    center = clamp(center, 85, 415);
+    seam = clamp(seam, 46, 170);
+    return { center: center, seam: seam };
+  }
+
+  function registerPerfectPass(g, shape){
+    var dist = Math.abs(player.y - shape.center);
+    if (dist < Math.max(10, shape.seam * 0.14)) {
+      g.perfect = true;
+      perfectChain++;
+      addBadge('perfect', '#fff38a');
+      burst(player.x, player.y, '#fff38a', 16);
+      var future = nearestFutureGates(3);
+      var count = 0;
+      for (var i = 0; i < future.length; i++) {
+        if (future[i] === g) continue;
+        applyGateRewrite(future[i], shape.center + (count * 8 - 4), 16 - count * 4, 'perfect', false);
+        authoredLinks.push({ x1: g.x + g.w * 0.5, y1: shape.center, x2: future[i].x + future[i].w * 0.5, y2: future[i].centerBase, life: 120, color: '#fff38a' });
+        count++;
+        if (count >= 2) break;
+      }
+    } else {
+      perfectChain = 0;
+    }
+  }
+
+  function updateGates(){
+    if (gates.length < 6) {
+      var lastX = gates.length ? gates[gates.length - 1].x : 820;
+      spawnGate(lastX + rand(220, 260));
+    }
+    for (var i = gates.length - 1; i >= 0; i--) {
+      var g = gates[i];
+      g.x -= scrollSpeed;
+      var shape = gateCurrentShape(g);
+      g.center = shape.center;
+      g.seam = shape.seam;
+      if (g.phaseWindowTimer > 0) {
+        g.phaseWindowTimer--;
+      } else {
+        g.phaseWindow = false;
+        g.echoBoost = false;
+      }
+      g.seamHighlight *= 0.96;
+      g.membranePulse = 0.5 + 0.5 * Math.sin(frame * 0.08 + g.morphBias);
+
+      var left = g.x;
+      var right = g.x + g.w;
+      var topMembraneBottom = g.center - g.seam * 0.5;
+      var bottomMembraneTop = g.center + g.seam * 0.5;
+      var hitX = player.x + player.r > left && player.x - player.r < right;
+
+      if (hitX) {
+        var hitTopFrame = player.y - player.r < topMembraneBottom - g.membraneThickness;
+        var hitBottomFrame = player.y + player.r > bottomMembraneTop + g.membraneThickness;
+        var inTopMembrane = player.y - player.r < topMembraneBottom && player.y + player.r > topMembraneBottom - g.membraneThickness;
+        var inBottomMembrane = player.y + player.r > bottomMembraneTop && player.y - player.r < bottomMembraneTop + g.membraneThickness;
+        if (hitTopFrame || hitBottomFrame) loseRun();
+        if ((inTopMembrane || inBottomMembrane) && !phaseActive && !g.phaseWindow) loseRun();
+      }
+
+      if (!g.passed && right < player.x) {
+        g.passed = true;
+        score++;
+        registerPerfectPass(g, shape);
+        if (g.routeMark && !g.routeCreditGiven) {
+          g.routeCreditGiven = true;
+          routeGoalProgress++;
+          addBadge('route ' + routeGoalProgress + '/' + routeGoalTarget, '#8affb1');
+          burst(player.x, player.y, '#8affb1', 10);
+          if (routeGoalProgress >= routeGoalTarget) {
+            state = 'won';
+            best = Math.max(best, score);
+          }
+        }
+      }
+
+      if (g.x + g.w < -40) gates.splice(i, 1);
+    }
+    difficultyTier = routeGoalProgress >= 3 ? 2 : routeGoalProgress >= 1 ? 1 : 0;
+  }
+
+  function updateGhostEcho(){
+    if (!ghostEcho || ghostEcho.length < 2 || state !== 'playing') return;
+    for (var i = 1; i < ghostEcho.length; i++) {
+      ghostEcho[i].x -= scrollSpeed;
+    }
+    while (ghostEcho.length && ghostEcho[0].x < -20) ghostEcho.shift();
+    for (var j = 1; j < ghostEcho.length; j++) {
+      var p = ghostEcho[j];
+      if (Math.hypot(player.x - p.x, player.y - p.y) < 18) {
+        var future = nearestFutureGates(1);
+        if (future[0]) {
+          future[0].seamBase = clamp(future[0].seamBase + 10, 54, 165);
+          future[0].seamHighlight = 1;
+          future[0].routeMark = true;
+        }
+        addBadge('echo assist', '#9fd3ff');
+        burst(p.x, p.y, '#9fd3ff', 8);
+        ghostEcho.splice(Math.max(0, j - 1), 2);
+        break;
+      }
+    }
+  }
+
+  function updateVisuals(){
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life--;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+    for (var j = badges.length - 1; j >= 0; j--) {
+      badges[j].y -= 0.4;
+      badges[j].life--;
+      if (badges[j].life <= 0) badges.splice(j, 1);
+    }
+    for (var k = windCreases.length - 1; k >= 0; k--) {
+      windCreases[k].x1 -= scrollSpeed;
+      windCreases[k].x2 -= scrollSpeed;
+      windCreases[k].life--;
+      if (windCreases[k].life <= 0) windCreases.splice(k, 1);
+    }
+    for (var m = authoredLinks.length - 1; m >= 0; m--) {
+      authoredLinks[m].x1 -= scrollSpeed;
+      authoredLinks[m].x2 -= scrollSpeed;
+      authoredLinks[m].life--;
+      if (authoredLinks[m].life <= 0) authoredLinks.splice(m, 1);
+    }
+  }
+
+  function update(){
+    if (state !== 'playing') return;
+    frame++;
+    updateBeat();
+    updatePlayer();
+    updateGhostEcho();
+    updateGates();
+    updateVisuals();
+  }
+
+  function drawBackground(){
+    var beatGlow = 0.15 + 0.1 * Math.sin((beatTimer / beatLength) * Math.PI * 2);
+    ctx.fillStyle = '#08111d';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (var i = 0; i < 8; i++) {
+      ctx.strokeStyle = 'rgba(80,180,255,' + (0.03 + i * 0.01 + beatGlow * 0.1) + ')';
+      ctx.beginPath();
+      ctx.moveTo(0, 60 + i * 48 + Math.sin(frame * 0.01 + i) * 8);
+      ctx.quadraticCurveTo(200, 40 + i * 48, 400, 60 + i * 48 + Math.sin(frame * 0.02 + i) * 15);
+      ctx.quadraticCurveTo(600, 80 + i * 48, 800, 60 + i * 48 + Math.sin(frame * 0.015 + i * 1.2) * 10);
+      ctx.stroke();
+    }
+    var bx = 690;
+    for (var b = 0; b < 2; b++) {
+      ctx.fillStyle = b === beatIndex ? '#7df9ff' : '#20334f';
+      ctx.fillRect(bx + b * 28, 24, 18, 18);
+    }
+  }
+
+  function drawGhostEcho(){
+    if (!ghostEcho || ghostEcho.length < 2) return;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(159,211,255,0.45)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(ghostEcho[0].x, ghostEcho[0].y);
+    for (var i = 1; i < ghostEcho.length; i++) ctx.lineTo(ghostEcho[i].x, ghostEcho[i].y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawLinks(){
+    for (var i = 0; i < authoredLinks.length; i++) {
+      var l = authoredLinks[i];
+      ctx.save();
+      ctx.strokeStyle = l.color;
+      ctx.globalAlpha = l.life / 120;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 5]);
+      ctx.beginPath();
+      ctx.moveTo(l.x1, l.y1);
+      ctx.lineTo(l.x2, l.y2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    for (var j = 0; j < windCreases.length; j++) {
+      var w = windCreases[j];
+      ctx.save();
+      ctx.globalAlpha = w.life / 120;
+      ctx.strokeStyle = w.refracted ? '#ffd166' : '#57e8ff';
+      ctx.lineWidth = w.refracted ? 4 : 3;
+      ctx.beginPath();
+      ctx.moveTo(w.x1, w.y1);
+      ctx.quadraticCurveTo((w.x1 + w.x2) * 0.5, Math.min(w.y1, w.y2) - 20, w.x2, w.y2);
+      ctx.stroke();
+      if (w.refracted) {
+        ctx.strokeStyle = '#ffffff';
+        ctx.globalAlpha = 0.35 * (w.life / 120);
+        ctx.beginPath();
+        ctx.moveTo(w.x1, w.y1 + 4);
+        ctx.quadraticCurveTo((w.x1 + w.x2) * 0.5, Math.min(w.y1, w.y2) - 8, w.x2, w.y2 + 4);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+
+  function drawGate(g){
+    var left = g.x;
+    var w = g.w;
+    var topMembraneBottom = g.center - g.seam * 0.5;
+    var bottomMembraneTop = g.center + g.seam * 0.5;
+    var glow = g.seamHighlight;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(120,90,255,0.18)';
+    ctx.fillRect(left, 0, w, topMembraneBottom - g.membraneThickness);
+    ctx.fillRect(left, bottomMembraneTop + g.membraneThickness, w, canvas.height - (bottomMembraneTop + g.membraneThickness));
+
+    ctx.fillStyle = g.phaseWindow ? 'rgba(255,220,120,0.28)' : 'rgba(80,240,255,' + (0.18 + g.membranePulse * 0.18) + ')';
+    ctx.fillRect(left, topMembraneBottom - g.membraneThickness, w, g.membraneThickness);
+    ctx.fillRect(left, bottomMembraneTop, w, g.membraneThickness);
+
+    ctx.strokeStyle = g.authored ? 'rgba(135,255,190,0.9)' : 'rgba(120,160,255,0.8)';
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(left + 2, 0, w - 4, topMembraneBottom - g.membraneThickness);
+    ctx.strokeRect(left + 2, bottomMembraneTop + g.membraneThickness, w - 4, canvas.height - (bottomMembraneTop + g.membraneThickness));
+
+    ctx.strokeStyle = g.phaseWindow ? '#ffe082' : '#b8f7ff';
+    ctx.globalAlpha = 0.6 + glow * 0.4;
+    ctx.beginPath();
+    ctx.moveTo(left + 4, g.center);
+    ctx.lineTo(left + w - 4, g.center);
+    ctx.stroke();
+
+    if (g.routeMark) {
+      ctx.fillStyle = 'rgba(138,255,177,0.85)';
+      ctx.beginPath();
+      ctx.arc(left + w * 0.5, g.center, 4 + glow * 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawPlayer(){
+    for (var i = 1; i < player.trail.length; i++) {
+      var p0 = player.trail[i - 1];
+      var p1 = player.trail[i];
+      ctx.strokeStyle = phaseActive ? 'rgba(213,160,255,0.18)' : 'rgba(87,232,255,0.12)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(p0.x, p0.y);
+      ctx.lineTo(p1.x, p1.y);
+      ctx.stroke();
+    }
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.rotate(player.tilt);
+    ctx.fillStyle = phaseActive ? '#d8b4ff' : '#1eefff';
+    ctx.beginPath();
+    ctx.arc(0, 0, player.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(4, -3, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    if (holdActive && holdCharge >= holdThreshold) {
+      ctx.strokeStyle = '#57e8ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, player.r + 5 + Math.sin(frame * 0.2) * 2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawParticles(){
+    for (var i = 0; i < particles.length; i++) {
+      var p = particles[i];
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = p.life / 40;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawBadges(){
+    ctx.font = '14px Arial';
+    for (var i = 0; i < badges.length; i++) {
+      var b = badges[i];
+      ctx.globalAlpha = b.life / 55;
+      ctx.fillStyle = b.color;
+      ctx.fillText(b.text, b.x, b.y);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawUI(){
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '18px Arial';
+    ctx.fillText('Score: ' + score, 20, 30);
+    ctx.fillText('Best: ' + best, 20, 54);
+    ctx.fillText('Route: ' + routeGoalProgress + '/' + routeGoalTarget, 20, 78);
+    ctx.fillText('Sync: ' + syncCharge + '/' + syncMax, 20, 102);
+    ctx.fillText(phaseReady ? 'Release hold for phase' : phaseActive ? 'Phase active' : 'Tap on beat to charge', 20, 126);
+    ctx.fillText('Hold then release: write wind crease', 20, 150);
+
+    ctx.strokeStyle = '#345';
+    ctx.strokeRect(20, 166, 120, 10);
+    ctx.fillStyle = '#57e8ff';
+    ctx.fillRect(20, 166, holdCharge * 2, 10);
+
+    if (echoAssistPulse > 0) {
+      ctx.fillStyle = 'rgba(255,209,102,' + (echoAssistPulse / 70) + ')';
+      ctx.fillText('Echo refraction armed next gate', 250, 30);
+    }
+
+    if (state === 'game_over' || state === 'won') {
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.fillRect(220, 160, 360, 140);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '30px Arial';
+      ctx.fillText(state === 'won' ? 'Route Composed' : 'Run Broken', 285, 210);
+      ctx.font = '18px Arial';
+      ctx.fillText(state === 'won' ? 'You authored 5 linked gates.' : 'Your death echo will assist next run.', 275, 242);
+      ctx.fillText('Press Space to restart', 312, 272);
+    }
+  }
+
+  function draw(){
+    drawBackground();
+    drawGhostEcho();
+    drawLinks();
+    for (var i = 0; i < gates.length; i++) drawGate(gates[i]);
+    drawPlayer();
+    drawParticles();
+    drawBadges();
+    drawUI();
+  }
+
+  function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  resetRun();
+  requestAnimationFrame(loop);
+};
+</script>
+</body>
+</html>

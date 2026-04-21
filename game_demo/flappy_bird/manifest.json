@@ -1,0 +1,54 @@
+[
+  {
+    "round": 1,
+    "label": "Pulse Morph Run",
+    "description": "A one-button flier where rhythm-shaped gates mutate in real time and precise passes rewrite the next obstacle.",
+    "scores": {
+      "creativity": 8,
+      "playability": 8,
+      "engagement": 8,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/flappy_bird/v1.html"
+  },
+  {
+    "round": 2,
+    "label": "Game lin_1776687736_000",
+    "description": "",
+    "scores": {
+      "creativity": 8,
+      "playability": 8,
+      "engagement": 8,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/flappy_bird/v2.html"
+  },
+  {
+    "round": 3,
+    "label": "Neon Route Weave",
+    "description": "A neon rhythm-flap arcade run with glowing route threads, impact flashes, polished HUD, and cinematic feedback that supports beat-linked gate weaving.",
+    "scores": {
+      "creativity": 8,
+      "playability": 8,
+      "engagement": 8,
+      "completeness": 9,
+      "code_quality": 7
+    },
+    "file": "./games/flappy_bird/v3.html"
+  },
+  {
+    "round": 4,
+    "label": "Neon Route Echo",
+    "description": "A neon arcade flyer polished with trails, impact flashes, animated HUD panels, and cinematic feedback that reinforces route-writing, echo assists, and rhythm phase play.",
+    "scores": {
+      "creativity": 8,
+      "playability": 8,
+      "engagement": 9,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/flappy_bird/v4.html"
+  }
+]

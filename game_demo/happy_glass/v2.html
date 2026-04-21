@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8'>
+<title>Echo Ink Ritual</title>
+<style>
+body{margin:0;background:#1f1a16;color:#2b2118;font-family:Arial,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden;}
+canvas{width:800px;height:500px;display:block;background:#eadfbe;box-shadow:0 8px 30px rgba(0,0,0,0.28),inset 0 0 40px rgba(120,90,40,0.08);border:1px solid #8d7859;}
+</style>
+</head>
+<body>
+<canvas id='gameCanvas'></canvas>
+<script>
+window.onload = function(){
+var canvas = document.getElementById('gameCanvas');
+var ctx = canvas.getContext('2d');
+canvas.width = 800;
+canvas.height = 500;
+
+var mouse = {x:0,y:0,down:false};
+var keys = {};
+var uiButtons = [];
+
+var gravityDirs = [
+  {x:0,y:0.11,name:'DOWN',angle:1.5708},
+  {x:-0.11,y:0,name:'LEFT',angle:3.14159},
+  {x:0,y:-0.11,name:'UP',angle:-1.5708},
+  {x:0.11,y:0,name:'RIGHT',angle:0}
+];
+
+function makeLevel(){
+  return {
+    source:{x:100,y:70,r:16},
+    cup:{x:676,y:370,w:70,h:78,fill:0,target:18},
+    ritual:{x:465,y:120,r:22,required:2,activated:false,pulse:0},
+    hazards:[
+      {x:300,y:215,w:120,h:18},
+      {x:560,y:250,w:120,h:18}
+    ],
+    walls:[
+      {x1:40,y1:455,x2:760,y2:455},
+      {x1:640,y1:448,x2:640,y2:360},
+      {x1:746,y1:448,x2:746,y2:360},
+      {x1:640,y1:448,x2:746,y2:448},
+      {x1:230,y1:150,x2:330,y2:150},
+      {x1:520,y1:160,x2:620,y2:160},
+      {x1:160,y1:315,x2:250,y2:315}
+    ]
+  };
+}
+
+var state;
+
+function resetGame(){
+  state = {
+    phase:'ready',
+    inkType:'solid',
+    strokes:[],
+    droplets:[],
+    sourceTimer:0,
+    sourceCount:0,
+    maxSource:34,
+    spawnInterval:24,
+    ink:320,
+    maxInk:320,
+    gravityIndex:0,
+    manualRotations:3,
+    level:makeLevel(),
+    win:false,
+    lose:false,
+    message:'Draw with mouse. Cycle ink. Click absorb strokes to inscribe echo gravity.',
+    pulseTextTimer:0,
+    evaporation:0,
+    spilled:0,
+    lastEcho:'',
+    tutorial:[
+      'Goal: activate ritual under UP gravity, then fill cup.',
+      'Solid ink deflects droplets.',
+      'Absorb ink stores a droplet, then releases it.',
+      'Click an absorb stroke to stamp an echo arrow.',
+      'When that stroke releases a droplet, gravity flips to the stamped direction.'
+    ]
+  };
+}
+resetGame();
+
+window.addEventListener('keydown', function(e){
+  keys[e.key.toLowerCase()] = true;
+  if(e.key.toLowerCase() === 'r'){
+    resetGame();
+  }
+  if(e.key.toLowerCase() === 'z'){
+    undoStroke();
+  }
+  if(e.key.toLowerCase() === 'q'){
+    rotateGravity(-1, true);
+  }
+  if(e.key.toLowerCase() === 'e'){
+    rotateGravity(1, true);
+  }
+  if(e.key.toLowerCase() === 'c'){
+    cycleInk();
+  }
+  if(e.key === ' '){
+    if(state.phase === 'ready'){
+      state.phase = 'running';
+    }
+  }
+});
+window.addEventListener('keyup', function(e){
+  keys[e.key.toLowerCase()] = false;
+});
+
+canvas.addEventListener('mousemove', function(e){
+  var rect = canvas.getBoundingClientRect();
+  mouse.x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  mouse.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+  if(mouse.down && state.phase !== 'won' && state.phase !== 'lost'){
+    extendCurrentStroke(mouse.x, mouse.y);
+  }
+});
+
+canvas.addEventListener('mousedown', function(){
+  mouse.down = true;
+  if(handleUIButtonClick(mouse.x, mouse.y)){
+    return;
+  }
+  if(state.phase === 'won' || state.phase === 'lost'){
+    return;
+  }
+  if(toggleEchoOnAbsorb(mouse.x, mouse.y)){
+    return;
+  }
+  beginStroke(mouse.x, mouse.y);
+});
+
+canvas.addEventListener('mouseup', function(){
+  mouse.down = false;
+  finishStroke();
+});
+
+function cycleInk(){
+  state.inkType = state.inkType === 'solid' ? 'absorb' : 'solid';
+}
+
+function rotateGravity(dir, manual){
+  if(manual){
+    if(state.manualRotations <= 0){
+      state.message = 'No manual rotations left. Use echo strokes.';
+      return;
+    }
+    state.manualRotations -= 1;
+  }
+  state.gravityIndex = (state.gravityIndex + dir + 4) % 4;
+  state.pulseTextTimer = 40;
+}
+
+function setGravity(index, byEcho){
+  state.gravityIndex = index;
+  state.pulseTextTimer = 50;
+  if(byEcho){
+    state.lastEcho = 'Echo -> ' + gravityDirs[index].name;
+    state.message = 'Echo stroke fired: gravity changed to ' + gravityDirs[index].name;
+  }
+}
+
+function beginStroke(x, y){
+  if(x < 0 || y < 0 || x > canvas.width || y > canvas.height){
+    return;
+  }
+  if(y < 60){
+    return;
+  }
+  state.currentStroke = {
+    type:state.inkType,
+    points:[{x:x,y:y}],
+    length:0,
+    echoDir:null,
+    stored:null,
+    cooldown:0,
+    pulse:0
+  };
+}
+
+function extendCurrentStroke(x, y){
+  if(!state.currentStroke){
+    return;
+  }
+  var pts = state.currentStroke.points;
+  var last = pts[pts.length - 1];
+  var dx = x - last.x;
+  var dy = y - last.y;
+  var dist = Math.sqrt(dx * dx + dy * dy);
+  if(dist < 6){
+    return;
+  }
+  if(state.ink <= 0){
+    return;
+  }
+  var cost = dist;
+  if(cost > state.ink){
+    var t = state.ink / cost;
+    x = last.x + dx * t;
+    y = last.y + dy * t;
+    dist = state.ink;
+  }
+  pts.push({x:x,y:y});
+  state.currentStroke.length += dist;
+  state.ink -= dist;
+}
+
+function finishStroke(){
+  if(!state.currentStroke){
+    return;
+  }
+  if(state.currentStroke.points.length > 1 && state.currentStroke.length > 10){
+    state.strokes.push(state.currentStroke);
+  }else{
+    state.ink += state.currentStroke.length;
+  }
+  state.currentStroke = null;
+}
+
+function undoStroke(){
+  if(state.currentStroke){
+    state.ink += state.currentStroke.length;
+    state.currentStroke = null;
+    return;
+  }
+  var s = state.strokes.pop();
+  if(s){
+    state.ink = Math.min(state.maxInk, state.ink + s.length);
+  }
+}
+
+function toggleEchoOnAbsorb(x, y){
+  for(var i = state.strokes.length - 1; i >= 0; i--){
+    var s = state.strokes[i];
+    if(s.type !== 'absorb'){
+      continue;
+    }
+    if(distanceToStroke(x, y, s) < 10){
+      if(s.echoDir === null){
+        s.echoDir = (state.gravityIndex + 1) % 4;
+      }else{
+        s.echoDir = (s.echoDir + 1) % 5;
+        if(s.echoDir === 4){
+          s.echoDir = null;
+        }
+      }
+      state.message = s.echoDir === null ? 'Echo removed from absorb stroke.' : 'Echo inscribed: ' + gravityDirs[s.echoDir].name;
+      return true;
+    }
+  }
+  return false;
+}
+
+function distanceToSegment(px, py, ax, ay, bx, by){
+  var vx = bx - ax;
+  var vy = by - ay;
+  var wx = px - ax;
+  var wy = py - ay;
+  var c1 = vx * wx + vy * wy;
+  if(c1 <= 0){
+    var dx1 = px - ax;
+    var dy1 = py - ay;
+    return Math.sqrt(dx1 * dx1 + dy1 * dy1);
+  }
+  var c2 = vx * vx + vy * vy;
+  if(c2 <= c1){
+    var dx2 = px - bx;
+    var dy2 = py - by;
+    return Math.sqrt(dx2 * dx2 + dy2 * dy2);
+  }
+  var b = c1 / c2;
+  var qx = ax + b * vx;
+  var qy = ay + b * vy;
+  var dx = px - qx;
+  var dy = py - qy;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function distanceToStroke(x, y, stroke){
+  var best = 99999;
+  for(var i = 1; i < stroke.points.length; i++){
+    var a = stroke.points[i - 1];
+    var b = stroke.points[i];
+    var d = distanceToSegment(x, y, a.x, a.y, b.x, b.y);
+    if(d < best){
+      best = d;
+    }
+  }
+  return best;
+}
+
+function nearestStrokeSegment(stroke, x, y){
+  var best = null;
+  var bestD = 99999;
+  for(var i = 1; i < stroke.points.length; i++){
+    var a = stroke.points[i - 1];
+    var b = stroke.points[i];
+    var d = distanceToSegment(x, y, a.x, a.y, b.x, b.y);
+    if(d < bestD){
+      bestD = d;
+      best = {a:a,b:b,d:d};
+    }
+  }
+  return best;
+}
+
+function spawnDroplet(){
+  state.droplets.push({x:state.level.source.x,y:state.level.source.y,vx:0,vy:0,r:5,alive:true,age:0});
+}
+
+function updateGame(){
+  if(state.phase === 'ready' || state.phase === 'won' || state.phase === 'lost'){
+    return;
+  }
+  if(state.pulseTextTimer > 0){
+    state.pulseTextTimer -= 1;
+  }
+  if(state.level.ritual.pulse > 0){
+    state.level.ritual.pulse -= 1;
+  }
+  for(var si = 0; si < state.strokes.length; si++){
+    var st = state.strokes[si];
+    if(st.cooldown > 0){
+      st.cooldown -= 1;
+    }
+    if(st.pulse > 0){
+      st.pulse -= 1;
+    }
+    if(st.type === 'absorb' && st.stored && st.cooldown <= 0){
+      releaseStoredDroplet(st);
+    }
+  }
+
+  state.sourceTimer += 1;
+  if(state.sourceCount < state.maxSource && state.sourceTimer >= state.spawnInterval){
+    state.sourceTimer = 0;
+    state.sourceCount += 1;
+    spawnDroplet();
+  }
+
+  var g = gravityDirs[state.gravityIndex];
+  for(var i = state.droplets.length - 1; i >= 0; i--){
+    var d = state.droplets[i];
+    d.age += 1;
+    d.vx += g.x;
+    d.vy += g.y;
+    d.vx *= 0.995;
+    d.vy *= 0.995;
+    d.x += d.vx;
+    d.y += d.vy;
+
+    handleWallSegments(d, state.level.walls, true);
+    handleStrokeCollisions(d);
+
+    if(checkHazard(d)){
+      state.droplets.splice(i, 1);
+      state.evaporation += 1;
+      continue;
+    }
+
+    if(checkRitual(d)){
+    }
+
+    if(checkCup(d)){
+      state.droplets.splice(i, 1);
+      continue;
+    }
+
+    if(d.x < -30 || d.x > 830 || d.y < -30 || d.y > 530){
+      state.droplets.splice(i, 1);
+      state.spilled += 1;
+      continue;
+    }
+  }
+
+  var remainingPossible = state.maxSource - state.sourceCount + state.droplets.length + Math.floor(state.level.cup.fill);
+  if(state.level.cup.fill >= state.level.cup.target && state.level.ritual.activated){
+    state.phase = 'won';
+    state.win = true;
+    state.message = 'Ritual complete. Cup filled.';
+  }else if(state.sourceCount >= state.maxSource && state.droplets.length === 0){
+    if(state.level.cup.fill < state.level.cup.target || !state.level.ritual.activated){
+      state.phase = 'lost';
+      state.lose = true;
+      state.message = 'The flow ended incomplete. Retry fast.';
+    }
+  }else if(remainingPossible < state.level.cup.target){
+    state.phase = 'lost';
+    state.lose = true;
+    state.message = 'Too much water was lost.';
+  }
+}
+
+function releaseStoredDroplet(stroke){
+  var d = stroke.stored;
+  stroke.stored = null;
+  var seg = nearestStrokeSegment(stroke, d.x, d.y) || {a:stroke.points[0],b:stroke.points[stroke.points.length - 1]};
+  var mx = (seg.a.x + seg.b.x) * 0.5;
+  var my = (seg.a.y + seg.b.y) * 0.5;
+  d.x = mx;
+  d.y = my;
+  var g = gravityDirs[state.gravityIndex];
+  d.vx = g.x * 18;
+  d.vy = g.y * 18;
+  state.droplets.push(d);
+  stroke.pulse = 20;
+  if(stroke.echoDir !== null){
+    setGravity(stroke.echoDir, true);
+  }
+}
+
+function handleWallSegments(droplet, segments, hard){
+  for(var i = 0; i < segments.length; i++){
+    var s = segments[i];
+    var dist = distanceToSegment(droplet.x, droplet.y, s.x1, s.y1, s.x2, s.y2);
+    if(dist < droplet.r + 2){
+      var vx = s.x2 - s.x1;
+      var vy = s.y2 - s.y1;
+      var len = Math.sqrt(vx * vx + vy * vy) || 1;
+      var nx = -vy / len;
+      var ny = vx / len;
+      var side = (droplet.x - s.x1) * nx + (droplet.y - s.y1) * ny;
+      if(side < 0){
+        nx *= -1;
+        ny *= -1;
+      }
+      droplet.x += nx * (droplet.r + 2 - dist);
+      droplet.y += ny * (droplet.r + 2 - dist);
+      var dot = droplet.vx * nx + droplet.vy * ny;
+      if(dot < 0 || hard){
+        droplet.vx -= 1.7 * dot * nx;
+        droplet.vy -= 1.7 * dot * ny;
+        droplet.vx *= 0.88;
+        droplet.vy *= 0.88;
+      }
+    }
+  }
+}
+
+function handleStrokeCollisions(droplet){
+  for(var i = 0; i < state.strokes.length; i++){
+    var s = state.strokes[i];
+    var seg = nearestStrokeSegment(s, droplet.x, droplet.y);
+    if(!seg || seg.d > droplet.r + 3){
+      continue;
+    }
+    if(s.type === 'solid'){
+      handleWallSegments(droplet, [{x1:seg.a.x,y1:seg.a.y,x2:seg.b.x,y2:seg.b.y}], false);
+    }else if(s.type === 'absorb'){
+      if(!s.stored && s.cooldown <= 0){
+        s.stored = {x:droplet.x,y:droplet.y,vx:0,vy:0,r:droplet.r,alive:true,age:droplet.age};
+        s.cooldown = 38;
+        s.pulse = 25;
+        droplet.x = -9999;
+        droplet.y = -9999;
+        droplet.vx = 0;
+        droplet.vy = 0;
+        droplet.age = 0;
+        for(var j = 0; j < state.droplets.length; j++){
+          if(state.droplets[j] === droplet){
+            state.droplets.splice(j, 1);
+            break;
+          }
+        }
+        return;
+      }else{
+        handleWallSegments(droplet, [{x1:seg.a.x,y1:seg.a.y,x2:seg.b.x,y2:seg.b.y}], false);
+      }
+    }
+  }
+}
+
+function checkHazard(d){
+  for(var i = 0; i < state.level.hazards.length; i++){
+    var h = state.level.hazards[i];
+    if(d.x > h.x && d.x < h.x + h.w && d.y > h.y && d.y < h.y + h.h){
+      return true;
+    }
+  }
+  return false;
+}
+
+function checkRitual(d){
+  var r = state.level.ritual;
+  var dx = d.x - r.x;
+  var dy = d.y - r.y;
+  var dist = Math.sqrt(dx * dx + dy * dy);
+  if(dist < r.r + d.r){
+    if(state.gravityIndex === r.required){
+      r.activated = true;
+      r.pulse = 30;
+      state.message = 'Ritual activated under ' + gravityDirs[r.required].name + '.';
+    }else{
+      state.message = 'Ritual touched under wrong gravity.';
+    }
+    return true;
+  }
+  return false;
+}
+
+function checkCup(d){
+  var c = state.level.cup;
+  if(d.x > c.x && d.x < c.x + c.w && d.y > c.y && d.y < c.y + c.h){
+    c.fill += 1;
+    return true;
+  }
+  return false;
+}
+
+function handleUIButtonClick(x, y){
+  for(var i = 0; i < uiButtons.length; i++){
+    var b = uiButtons[i];
+    if(x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h){
+      b.action();
+      return true;
+    }
+  }
+  return false;
+}
+
+function drawButton(x, y, w, h, label, action, active){
+  uiButtons.push({x:x,y:y,w:w,h:h,action:action});
+  ctx.fillStyle = active ? '#5e4b31' : '#7a6442';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#2f2418';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, w, h);
+  ctx.fillStyle = '#f5ebd0';
+  ctx.font = '13px Arial';
+  ctx.fillText(label, x + 10, y + 18);
+}
+
+function drawStroke(stroke){
+  if(stroke.points.length < 2){
+    return;
+  }
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = stroke.type === 'solid' ? 6 : 8;
+  ctx.strokeStyle = stroke.type === 'solid' ? '#2f2a24' : '#5f8d7a';
+  if(stroke.pulse > 0){
+    ctx.shadowColor = stroke.type === 'solid' ? 'rgba(0,0,0,0.2)' : 'rgba(90,220,180,0.8)';
+    ctx.shadowBlur = 12;
+  }
+  ctx.beginPath();
+  ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+  for(var i = 1; i < stroke.points.length; i++){
+    ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  if(stroke.type === 'absorb'){
+    var mid = stroke.points[Math.floor(stroke.points.length / 2)];
+    ctx.fillStyle = '#dcefe8';
+    ctx.beginPath();
+    ctx.arc(mid.x, mid.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    if(stroke.stored){
+      ctx.strokeStyle = '#d8fff2';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(mid.x, mid.y, 10 + Math.sin(Date.now() * 0.01) * 2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if(stroke.echoDir !== null){
+      drawEchoGlyph(mid.x, mid.y - 14, stroke.echoDir);
+    }
+  }
+}
+
+function drawEchoGlyph(x, y, dir){
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(gravityDirs[dir].angle);
+  ctx.strokeStyle = '#8c3fd1';
+  ctx.fillStyle = '#8c3fd1';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-8, 0);
+  ctx.lineTo(8, 0);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(8, 0);
+  ctx.lineTo(2, -4);
+  ctx.lineTo(2, 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawCompass(){
+  var x = 710;
+  var y = 82;
+  ctx.fillStyle = '#d8c89c';
+  ctx.beginPath();
+  ctx.arc(x, y, 34, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#4a3d2c';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = '#4a3d2c';
+  ctx.font = '11px Arial';
+  ctx.fillText('U', x - 4, y - 22);
+  ctx.fillText('D', x - 4, y + 28);
+  ctx.fillText('L', x - 24, y + 4);
+  ctx.fillText('R', x + 18, y + 4);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(gravityDirs[state.gravityIndex].angle);
+  ctx.fillStyle = state.pulseTextTimer > 0 ? '#8c3fd1' : '#a34b2c';
+  ctx.beginPath();
+  ctx.moveTo(-6, -8);
+  ctx.lineTo(14, 0);
+  ctx.lineTo(-6, 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawLevel(){
+  ctx.fillStyle = '#efe4c7';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = 'rgba(110,80,40,0.08)';
+  for(var i = 0; i < 18; i++){
+    ctx.fillRect(0, i * 28 + 16, canvas.width, 1);
+  }
+
+  ctx.fillStyle = '#d2b48c';
+  ctx.fillRect(0, 0, canvas.width, 56);
+  ctx.fillStyle = '#3b2f20';
+  ctx.font = '18px Arial';
+  ctx.fillText('Echo Ink Ritual', 18, 22);
+  ctx.font = '12px Arial';
+  ctx.fillText('Draw paths, script gravity, satisfy the ritual, then fill the cup.', 18, 40);
+
+  uiButtons = [];
+  drawButton(16, 462, 62, 24, 'Start', function(){ state.phase = 'running'; }, state.phase === 'running');
+  drawButton(84, 462, 68, 24, 'Restart', function(){ resetGame(); }, false);
+  drawButton(158, 462, 58, 24, 'Undo', function(){ undoStroke(); }, false);
+  drawButton(222, 462, 62, 24, 'Ink', function(){ cycleInk(); }, state.inkType === 'absorb');
+  drawButton(290, 462, 70, 24, 'Rotate L', function(){ rotateGravity(-1, true); }, false);
+  drawButton(366, 462, 70, 24, 'Rotate R', function(){ rotateGravity(1, true); }, false);
+
+  ctx.strokeStyle = '#6a573b';
+  ctx.lineWidth = 4;
+  for(var wi = 0; wi < state.level.walls.length; wi++){
+    var w = state.level.walls[wi];
+    ctx.beginPath();
+    ctx.moveTo(w.x1, w.y1);
+    ctx.lineTo(w.x2, w.y2);
+    ctx.stroke();
+  }
+
+  for(var hi = 0; hi < state.level.hazards.length; hi++){
+    var h = state.level.hazards[hi];
+    ctx.fillStyle = '#d86a3d';
+    ctx.fillRect(h.x, h.y, h.w, h.h);
+    ctx.fillStyle = '#ffd4a8';
+    for(var fx = h.x; fx < h.x + h.w; fx += 18){
+      ctx.beginPath();
+      ctx.moveTo(fx, h.y + h.h);
+      ctx.lineTo(fx + 6, h.y + 4);
+      ctx.lineTo(fx + 12, h.y + h.h);
+      ctx.fill();
+    }
+  }
+
+  var r = state.level.ritual;
+  ctx.fillStyle = r.activated ? '#9fdfb0' : '#b08cc7';
+  ctx.beginPath();
+  ctx.arc(r.x, r.y, r.r + (r.pulse > 0 ? 4 : 0), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#4f355b';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  drawEchoGlyph(r.x, r.y, r.required);
+  ctx.fillStyle = '#3b2f20';
+  ctx.font = '11px Arial';
+  ctx.fillText('Ritual', r.x - 16, r.y + 36);
+
+  var c = state.level.cup;
+  ctx.strokeStyle = '#5b6f8b';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(c.x, c.y);
+  ctx.lineTo(c.x, c.y + c.h);
+  ctx.lineTo(c.x + c.w, c.y + c.h);
+  ctx.lineTo(c.x + c.w, c.y);
+  ctx.stroke();
+  var fh = Math.min(c.h, (c.fill / c.target) * c.h);
+  ctx.fillStyle = state.level.ritual.activated ? '#5ca9d6' : '#9bb7c8';
+  ctx.fillRect(c.x + 4, c.y + c.h - fh, c.w - 8, fh);
+  ctx.fillStyle = '#3b2f20';
+  ctx.font = '12px Arial';
+  ctx.fillText('Cup', c.x + 20, c.y + c.h + 16);
+
+  ctx.fillStyle = '#7bb6e8';
+  ctx.beginPath();
+  ctx.arc(state.level.source.x, state.level.source.y, state.level.source.r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#244763';
+  ctx.font = '12px Arial';
+  ctx.fillText('Source', state.level.source.x - 18, state.level.source.y + 30);
+
+  for(var si = 0; si < state.strokes.length; si++){
+    drawStroke(state.strokes[si]);
+  }
+  if(state.currentStroke){
+    drawStroke(state.currentStroke);
+  }
+
+  for(var di = 0; di < state.droplets.length; di++){
+    var d = state.droplets[di];
+    ctx.fillStyle = '#4da3df';
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.beginPath();
+    ctx.arc(d.x - 1.5, d.y - 1.5, d.r * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  drawCompass();
+
+  ctx.fillStyle = '#3b2f20';
+  ctx.font = '13px Arial';
+  ctx.fillText('Ink: ' + Math.floor(state.ink) + '/' + state.maxInk, 470, 24);
+  ctx.fillText('Ink Type: ' + state.inkType.toUpperCase(), 470, 42);
+  ctx.fillText('Manual Rotations: ' + state.manualRotations, 600, 24);
+  ctx.fillText('Cup Fill: ' + Math.floor(state.level.cup.fill) + '/' + state.level.cup.target, 600, 42);
+  ctx.fillText('Evaporated: ' + state.evaporation, 470, 492);
+  ctx.fillText('Spilled: ' + state.spilled, 570, 492);
+  ctx.fillText('Ritual: ' + (state.level.ritual.activated ? 'ACTIVE' : 'LOCKED'), 650, 492);
+
+  ctx.fillStyle = '#4a3d2c';
+  ctx.font = '12px Arial';
+  ctx.fillText('Shortcuts: C ink, Q/E rotate, Z undo, R restart, Space start', 18, 438);
+  ctx.fillText(state.message, 18, 70);
+  if(state.lastEcho){
+    ctx.fillStyle = '#7a2fb5';
+    ctx.fillText(state.lastEcho, 18, 88);
+  }
+
+  if(state.phase === 'ready'){
+    drawOverlay('Notebook Ready', state.tutorial);
+  }
+  if(state.phase === 'won'){
+    drawOverlay('Ritual Complete', ['You programmed gravity with ink.', 'Restart to refine a cleaner solve.']);
+  }
+  if(state.phase === 'lost'){
+    drawOverlay('Flow Failed', ['Cup and ritual must both succeed.', 'Use undo or restart and try a new script.']);
+  }
+}
+
+function drawOverlay(title, lines){
+  ctx.fillStyle = 'rgba(40,28,18,0.72)';
+  ctx.fillRect(130, 110, 540, 250);
+  ctx.strokeStyle = '#d8c89c';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(130, 110, 540, 250);
+  ctx.fillStyle = '#f4e8c9';
+  ctx.font = '26px Arial';
+  ctx.fillText(title, 310, 150);
+  ctx.font = '15px Arial';
+  for(var i = 0; i < lines.length; i++){
+    ctx.fillText(lines[i], 160, 195 + i * 28);
+  }
+}
+
+function loop(){
+  updateGame();
+  drawLevel();
+  requestAnimationFrame(loop);
+}
+
+loop();
+};
+</script>
+</body>
+</html>

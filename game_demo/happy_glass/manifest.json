@@ -1,0 +1,54 @@
+[
+  {
+    "round": 1,
+    "label": "Ink Ritual Cup",
+    "description": "Draw with programmable ink types to route water, awaken a ritual bloom, and make the cup truly happy.",
+    "scores": {
+      "creativity": 8,
+      "playability": 8,
+      "engagement": 7,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/happy_glass/v1.html"
+  },
+  {
+    "round": 2,
+    "label": "Echo Ink Ritual",
+    "description": "Draw solid and absorb strokes to route droplets, inscribe delayed gravity flips on absorb lines, activate a ritual under the right orientation, and then fill the cup.",
+    "scores": {
+      "creativity": 8,
+      "playability": 8,
+      "engagement": 7,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/happy_glass/v2.html"
+  },
+  {
+    "round": 3,
+    "label": "Ink Chain Codex",
+    "description": "Draw solid and absorb ink to program delayed gravity flips, charge a ritual, and send history-sensitive droplets into the cup through relay chains.",
+    "scores": {
+      "creativity": 8,
+      "playability": 8,
+      "engagement": 7,
+      "completeness": 9,
+      "code_quality": 7
+    },
+    "file": "./games/happy_glass/v3.html"
+  },
+  {
+    "round": 4,
+    "label": "Ritual Ink Cup",
+    "description": "Draw solid and absorb inks to program droplet paths through a ritual ring and into the cup while managing limited gravity turns.",
+    "scores": {
+      "creativity": 8,
+      "playability": 8,
+      "engagement": 7,
+      "completeness": 9,
+      "code_quality": 8
+    },
+    "file": "./games/happy_glass/v4.html"
+  }
+]
