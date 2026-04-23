@@ -111,7 +111,7 @@ Three common patterns emerge across all lineages:
 
 ## Authors
 
-Hongnan Ma · Han Wang · Shenglin Wang · Tieyue Yin · Yiwei Shi · Yucong Huang  
+**Team Members (listed alphabetically):** Hongnan Ma · Han Wang · Shenglin Wang · Tieyue Yin · Yiwei Shi · Yucong Huang  
 **Team Leaders:** Yingtian Zou · Muning Wen · Mengyue Yang
 
 ---
