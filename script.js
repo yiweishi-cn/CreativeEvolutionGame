@@ -243,10 +243,21 @@ function buildScoreBox(label, value) {
   return `<div class="score-box"><span class="score-label">${label}</span><span class="score-value">${value}</span></div>`;
 }
 
+function getSrcdoc(playUrl) {
+  if (!playUrl || typeof GAME_SRCDOC === "undefined") return null;
+  // playUrl like "./game_demo/flappy_bird/v2.html"
+  const m = playUrl.match(/game_demo\/([^/]+)\/(v\d+)\.html/);
+  if (!m) return null;
+  return GAME_SRCDOC[m[1]] && GAME_SRCDOC[m[1]][m[2]] || null;
+}
+
 function buildDemoCell(stage, isFirst) {
-  const iframe = stage.playUrl
-    ? `<iframe src="${stage.playUrl}" scrolling="no" loading="lazy" tabindex="-1"></iframe>`
-    : "";
+  const srcdoc = getSrcdoc(stage.playUrl);
+  const iframe = srcdoc
+    ? `<iframe srcdoc="${srcdoc}" scrolling="no" tabindex="-1"></iframe>`
+    : stage.playUrl
+      ? `<iframe src="${stage.playUrl}" scrolling="no" loading="lazy" tabindex="-1"></iframe>`
+      : "";
   const playBtn = stage.playUrl
     ? `<a class="play-btn" href="${stage.playUrl}" target="_blank" rel="noopener">▶ Play</a>`
     : "";
